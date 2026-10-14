@@ -124,6 +124,178 @@
   .af-admin .af-brand {
     letter-spacing: 0.18em;
   }
+
+  /* —— Dedicated admin login stage —— */
+  .af-login {
+    --login-ink: #07060a;
+    --login-gold: #e8c58c;
+    --login-gold-hot: #f3d9a8;
+    --login-mist: rgba(255, 255, 255, 0.06);
+    color-scheme: dark;
+    background: var(--login-ink);
+    color: #f4efe6;
+  }
+
+  .af-login-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+  }
+
+  .af-login-grid {
+    background-image:
+      linear-gradient(rgba(232, 197, 140, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232, 197, 140, 0.045) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 75%);
+  }
+
+  .af-login-brand-wrap {
+    position: relative;
+    display: inline-block;
+    perspective: 600px;
+  }
+
+  .af-login-brand {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    letter-spacing: 0.04em;
+    font-weight: 800;
+    /* فضای کافی برای نقطه‌های چ / پ تا جدا یا بریده نشوند */
+    line-height: 1.45;
+    padding: 0.12em 0.08em 0.28em;
+    cursor: default;
+    transform-style: preserve-3d;
+    background: linear-gradient(
+      180deg,
+      #f0d4a0 0%,
+      #e8c58c 32%,
+      #d4a84a 58%,
+      #b8892e 80%,
+      #8a6520 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    transform: rotateX(0deg) rotateY(0deg);
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      filter 0.4s ease;
+    /* سایهٔ نرم — بدون لایهٔ سخت پایین که نقطه‌ها را «فرو رفته» نشان دهد */
+    filter: drop-shadow(0 0 14px rgba(232, 197, 140, 0.45))
+      drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+    animation: af-login-glow 3.5s ease-in-out infinite;
+  }
+
+  .af-login-brand.is-tilting {
+    animation: none;
+    transition: transform 0.12s ease-out, filter 0.25s ease;
+    filter: drop-shadow(0 0 22px rgba(232, 197, 140, 0.55))
+      drop-shadow(0 3px 8px rgba(0, 0, 0, 0.4));
+  }
+
+  .af-login-panel {
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.075) 0%,
+      rgba(255, 255, 255, 0.03) 48%,
+      rgba(232, 197, 140, 0.04) 100%
+    );
+    box-shadow:
+      0 0 0 1px rgba(232, 197, 140, 0.14),
+      0 40px 100px -40px rgba(0, 0, 0, 0.85),
+      0 0 80px -30px rgba(232, 197, 140, 0.22);
+    backdrop-filter: blur(22px);
+  }
+
+  .af-login-input {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .af-login-input:focus {
+    outline: none;
+    border-color: rgba(232, 197, 140, 0.55);
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 0 3px rgba(232, 197, 140, 0.12),
+      0 0 28px -8px rgba(232, 197, 140, 0.45);
+  }
+
+  .af-login-submit {
+    background: linear-gradient(
+      135deg,
+      #f0d4a0 0%,
+      #e8c58c 40%,
+      #c9a05e 100%
+    );
+    color: #1a1408;
+    box-shadow: 0 0 32px -6px rgba(232, 197, 140, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .af-login-submit:hover:not(:disabled) {
+    filter: brightness(1.06);
+    box-shadow: 0 0 42px -4px rgba(232, 197, 140, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
+  .af-login-submit:active:not(:disabled) {
+    transform: scale(0.985);
+  }
+
+  @keyframes af-login-glow {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 12px rgba(232, 197, 140, 0.35))
+        drop-shadow(0 2px 6px rgba(0, 0, 0, 0.32));
+    }
+    50% {
+      filter: drop-shadow(0 0 24px rgba(232, 197, 140, 0.52))
+        drop-shadow(0 2px 6px rgba(0, 0, 0, 0.32));
+    }
+  }
+
+  @keyframes af-login-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(2%, -3%, 0) scale(1.06);
+    }
+  }
+
+  @keyframes af-login-drift-alt {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-3%, 2%, 0) scale(1.08);
+    }
+  }
+
+  .af-login-orb-a {
+    animation: af-login-drift 14s ease-in-out infinite;
+  }
+
+  .af-login-orb-b {
+    animation: af-login-drift-alt 18s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .af-login-brand,
+    .af-login-orb-a,
+    .af-login-orb-b {
+      animation: none;
+    }
+
+    .af-login-brand.is-tilting {
+      transform: none !important;
+    }
+  }
 }
 
 @supports (font: -apple-system-body) and (-webkit-appearance: none) {

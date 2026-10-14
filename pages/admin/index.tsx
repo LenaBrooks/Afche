@@ -14,6 +14,7 @@ import {
   PlusIcon,
   Squares2X2Icon,
   SunIcon,
+  TrashIcon,
 } from "@heroicons/react/24/solid";
 import {
   CheckCircleIcon,
@@ -797,21 +798,19 @@ const AdminPanel: NextPage = () => {
         </div>
 
         {!loading && photos.length > 0 && (
-          <div className="mb-3 space-y-2.5 rounded-[var(--af-radius-lg)] border border-[var(--af-border)] bg-[var(--af-surface)] p-2.5 shadow-[var(--af-shadow-sm)] sm:mb-4 sm:space-y-3 sm:p-3">
-            <div className="flex items-center gap-2">
-              <div className="relative min-w-0 flex-1" ref={sortRef}>
+          <div className="mb-2 space-y-1.5">
+            <div className="flex items-center gap-1">
+              <div className="relative" ref={sortRef}>
                 <button
                   type="button"
                   aria-haspopup="listbox"
                   aria-expanded={sortOpen}
                   onClick={() => setSortOpen((o) => !o)}
-                  className="af-focusable flex h-10 w-full items-center justify-between gap-2 rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-input-bg)] px-3 text-sm text-[var(--af-text)]"
+                  className="af-focusable inline-flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-[var(--af-text)] hover:bg-[var(--af-hover)]"
                 >
-                  <span className="truncate">
-                    {SORT_OPTIONS.find((o) => o.id === sortKey)?.label}
-                  </span>
+                  {SORT_OPTIONS.find((o) => o.id === sortKey)?.label}
                   <ChevronDownIcon
-                    className={`h-4 w-4 shrink-0 text-[var(--af-muted)] transition ${
+                    className={`h-3.5 w-3.5 text-[var(--af-muted)] transition ${
                       sortOpen ? "rotate-180" : ""
                     }`}
                   />
@@ -819,7 +818,7 @@ const AdminPanel: NextPage = () => {
                 {sortOpen && (
                   <ul
                     role="listbox"
-                    className="absolute top-[calc(100%+6px)] right-0 z-40 min-w-full overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] py-1 shadow-[var(--af-shadow)]"
+                    className="absolute top-[calc(100%+4px)] right-0 z-40 min-w-[8.5rem] overflow-hidden rounded-lg bg-[var(--af-surface)] py-1 shadow-[var(--af-shadow)] ring-1 ring-[var(--af-border)]"
                   >
                     {SORT_OPTIONS.map((opt) => {
                       const active = opt.id === sortKey;
@@ -829,20 +828,18 @@ const AdminPanel: NextPage = () => {
                             type="button"
                             onClick={() => {
                               setSortKey(opt.id);
-                              if (opt.id === "random") {
-                                setRandomSeed(Date.now());
-                              }
+                              if (opt.id === "random") setRandomSeed(Date.now());
                               setSortOpen(false);
                             }}
-                            className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right text-sm ${
+                            className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-right text-sm ${
                               active
-                                ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
+                                ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)]"
                                 : "text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
                             }`}
                           >
                             {opt.label}
                             {active && (
-                              <CheckIcon className="h-4 w-4 text-[var(--af-accent)]" />
+                              <CheckIcon className="h-3.5 w-3.5 text-[var(--af-accent)]" />
                             )}
                           </button>
                         </li>
@@ -858,48 +855,88 @@ const AdminPanel: NextPage = () => {
                 aria-label="جستجو"
                 aria-expanded={searchOpen}
                 onClick={() => setSearchOpen((o) => !o)}
-                className={`af-focusable inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--af-radius-md)] border transition ${
+                className={`af-focusable inline-flex h-9 w-9 items-center justify-center rounded-lg transition ${
                   searchOpen || query
-                    ? "border-[var(--af-ctl-active-ring)] bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
-                    : "border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+                    ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)]"
+                    : "text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
                 }`}
               >
                 <MagnifyingGlassIcon className="h-4 w-4" />
               </button>
 
-              <div className="flex h-10 shrink-0 overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-ctl-bg)]">
-                <button
-                  type="button"
-                  title="شبکه‌ای"
-                  aria-label="نمای شبکه‌ای"
-                  onClick={() => setViewMode("grid")}
-                  className={`inline-flex h-full w-10 items-center justify-center transition ${
-                    viewMode === "grid"
-                      ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
-                      : "text-[var(--af-ctl-fg)] hover:bg-[var(--af-hover)]"
-                  }`}
-                >
-                  <Squares2X2Icon className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  title="لیستی"
-                  aria-label="نمای لیستی"
-                  onClick={() => setViewMode("list")}
-                  className={`inline-flex h-full w-10 items-center justify-center transition ${
-                    viewMode === "list"
-                      ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
-                      : "text-[var(--af-ctl-fg)] hover:bg-[var(--af-hover)]"
-                  }`}
-                >
+              <button
+                type="button"
+                title={viewMode === "grid" ? "نمای لیستی" : "نمای شبکه‌ای"}
+                aria-label={viewMode === "grid" ? "نمای لیستی" : "نمای شبکه‌ای"}
+                onClick={() =>
+                  setViewMode((m) => (m === "grid" ? "list" : "grid"))
+                }
+                className="af-focusable inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+              >
+                {viewMode === "grid" ? (
                   <ListBulletIcon className="h-4 w-4" />
+                ) : (
+                  <Squares2X2Icon className="h-4 w-4" />
+                )}
+              </button>
+
+              <div className="mr-auto flex items-center gap-0.5">
+                <button
+                  type="button"
+                  title={allSelected ? "لغو انتخاب" : "انتخاب همه"}
+                  aria-label={allSelected ? "لغو انتخاب" : "انتخاب همه"}
+                  aria-pressed={allSelected}
+                  disabled={busy}
+                  onClick={toggleAll}
+                  className={`af-focusable inline-flex h-9 w-9 items-center justify-center rounded-lg transition disabled:opacity-40 ${
+                    allSelected
+                      ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)]"
+                      : "text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+                  }`}
+                >
+                  <CheckCircleIcon className="h-5 w-5" />
                 </button>
+
+                {tab === "pending" && (
+                  <button
+                    type="button"
+                    title="تأیید همه"
+                    aria-label="تأیید همه"
+                    disabled={busy || visiblePhotos.length === 0}
+                    onClick={() =>
+                      runBulk(
+                        "approve",
+                        visiblePhotos.map((p) => p.public_id),
+                      )
+                    }
+                    className="af-focusable inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--af-ok)] hover:bg-[var(--af-ok-soft)] disabled:opacity-40"
+                  >
+                    <CheckIcon className="h-5 w-5" />
+                  </button>
+                )}
+
+                {(tab === "approved" || tab === "hidden") && (
+                  <button
+                    type="button"
+                    title="حذف همه"
+                    aria-label="حذف همه"
+                    disabled={busy || visiblePhotos.length === 0}
+                    onClick={() =>
+                      runBulk(
+                        "delete",
+                        visiblePhotos.map((p) => p.public_id),
+                      )
+                    }
+                    className="af-focusable inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--af-danger)] hover:bg-[var(--af-danger-soft)] disabled:opacity-40"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
 
             {searchOpen && (
-              <div className="relative w-full">
-                <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-[var(--af-accent)]" />
+              <div className="relative">
                 <input
                   ref={searchInputRef}
                   type="search"
@@ -909,8 +946,8 @@ const AdminPanel: NextPage = () => {
                     setPreviewIndex(null);
                     setSheetIndex(null);
                   }}
-                  placeholder="جستجو نام فایل…"
-                  className="af-focusable h-10 w-full rounded-[var(--af-radius-md)] border border-[var(--af-ctl-active-ring)] bg-[var(--af-input-bg)] pr-9 pl-10 text-sm text-[var(--af-text)] outline-none placeholder:text-[var(--af-muted)] shadow-[var(--af-ctl-active-glow)]"
+                  placeholder="جستجو…"
+                  className="af-focusable h-9 w-full rounded-lg bg-[var(--af-input-bg)] px-3 text-sm text-[var(--af-text)] outline-none ring-1 ring-[var(--af-border)] placeholder:text-[var(--af-muted)] focus:ring-[var(--af-accent)]/40"
                 />
                 <button
                   type="button"
@@ -920,69 +957,12 @@ const AdminPanel: NextPage = () => {
                     setSearchOpen(false);
                     setQuery("");
                   }}
-                  className="absolute top-1/2 left-2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+                  className="absolute top-1/2 left-1.5 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-[var(--af-muted)] hover:text-[var(--af-text)]"
                 >
                   <XMarkIcon className="h-4 w-4" />
                 </button>
               </div>
             )}
-
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <button
-                type="button"
-                title={
-                  allSelected
-                    ? "لغو انتخاب صفحه"
-                    : `انتخاب صفحه (${toFaDigits(pagePhotos.length)})`
-                }
-                aria-label={
-                  allSelected ? "لغو انتخاب صفحه" : "انتخاب صفحه"
-                }
-                aria-pressed={allSelected}
-                disabled={busy}
-                onClick={toggleAll}
-                className={`af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border transition disabled:opacity-40 ${
-                  allSelected
-                    ? "border-[var(--af-ctl-active-ring)] bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
-                    : "border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
-                }`}
-              >
-                <CheckCircleIcon className="h-5 w-5" />
-              </button>
-              {selected.size > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelected(new Set())}
-                  className="af-focusable fa-num text-xs text-[var(--af-accent)] hover:brightness-110"
-                >
-                  پاک کردن ({toFaDigits(selected.size)})
-                </button>
-              )}
-              {visiblePhotos.length > PAGE_SIZE && (
-                <span className="fa-num text-xs text-[var(--af-muted)]">
-                  {toFaDigits((safePage - 1) * PAGE_SIZE + 1)}–
-                  {toFaDigits(
-                    Math.min(safePage * PAGE_SIZE, visiblePhotos.length),
-                  )}{" "}
-                  از {toFaDigits(visiblePhotos.length)}
-                </span>
-              )}
-              {tab === "pending" && (
-                <Button
-                  size="sm"
-                  variant="soft"
-                  disabled={busy || visiblePhotos.length === 0}
-                  onClick={() =>
-                    runBulk(
-                      "approve",
-                      visiblePhotos.map((p) => p.public_id),
-                    )
-                  }
-                >
-                  تأیید همه
-                </Button>
-              )}
-            </div>
           </div>
         )}
 
@@ -1244,80 +1224,94 @@ const AdminPanel: NextPage = () => {
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
-            className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--af-ctl-active-ring)] bg-[var(--af-surface)]/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[var(--af-ctl-active-glow)] backdrop-blur-sm"
+            className="fixed inset-x-0 bottom-0 z-40 bg-[var(--af-surface)]/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[var(--af-ctl-active-glow)] ring-1 ring-[var(--af-ctl-active-ring)] backdrop-blur-sm"
           >
-            <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto scrollbar-none">
-              <span className="fa-num shrink-0 text-xs font-medium text-[var(--af-ctl-active-fg)] sm:text-sm">
-                {toFaDigits(selected.size)} انتخاب
+            <div className="mx-auto flex max-w-6xl items-center gap-2">
+              <span className="fa-num text-xs text-[var(--af-ctl-active-fg)]">
+                {toFaDigits(selected.size)}
               </span>
-              <div className="mr-auto flex shrink-0 gap-1.5">
+              <div className="mr-auto flex items-center gap-0.5">
                 {tab === "pending" && (
                   <>
-                    <Button
-                      size="sm"
+                    <button
+                      type="button"
+                      title="تأیید"
+                      aria-label="تأیید"
                       disabled={busy}
-                      className="!bg-emerald-500/90 !text-black"
                       onClick={() => runBulk("approve")}
+                      className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--af-ok)] hover:bg-[var(--af-ok-soft)] disabled:opacity-40"
                     >
-                      تأیید
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
+                      <CheckIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="رد"
+                      aria-label="رد"
                       disabled={busy}
                       onClick={() => runBulk("reject")}
+                      className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--af-danger)] hover:bg-[var(--af-danger-soft)] disabled:opacity-40"
                     >
-                      رد
-                    </Button>
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
                   </>
                 )}
                 {tab === "approved" && (
                   <>
-                    <Button
-                      size="sm"
-                      variant="warn"
+                    <button
+                      type="button"
+                      title="توقف"
+                      aria-label="توقف"
                       disabled={busy}
                       onClick={() => runBulk("hide")}
+                      className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--af-warn)] hover:bg-[var(--af-warn-soft)] disabled:opacity-40"
                     >
-                      توقف
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
+                      <MoonIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="حذف"
+                      aria-label="حذف"
                       disabled={busy}
                       onClick={() => runBulk("delete")}
+                      className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--af-danger)] hover:bg-[var(--af-danger-soft)] disabled:opacity-40"
                     >
-                      حذف
-                    </Button>
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
                   </>
                 )}
                 {tab === "hidden" && (
                   <>
-                    <Button
-                      size="sm"
+                    <button
+                      type="button"
+                      title="انتشار"
+                      aria-label="انتشار"
                       disabled={busy}
-                      className="!bg-emerald-500/90 !text-black"
                       onClick={() => runBulk("unhide")}
+                      className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--af-ok)] hover:bg-[var(--af-ok-soft)] disabled:opacity-40"
                     >
-                      انتشار
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
+                      <CheckIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="حذف"
+                      aria-label="حذف"
                       disabled={busy}
                       onClick={() => runBulk("delete")}
+                      className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--af-danger)] hover:bg-[var(--af-danger-soft)] disabled:opacity-40"
                     >
-                      حذف
-                    </Button>
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
                   </>
                 )}
-                <Button
-                  size="sm"
-                  variant="ghost"
+                <button
+                  type="button"
+                  title="لغو انتخاب"
+                  aria-label="لغو انتخاب"
                   onClick={() => setSelected(new Set())}
+                  className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
                 >
-                  لغو
-                </Button>
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
               </div>
             </div>
           </motion.div>
