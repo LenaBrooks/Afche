@@ -30,6 +30,11 @@ export default async function handler(
 
   try {
     await applyPhotoAction(publicId, action);
+    try {
+      await res.revalidate("/");
+    } catch {
+      /* ISR may be unavailable in some runtimes */
+    }
     return res.status(200).json({ ok: true, action });
   } catch (error: any) {
     return res

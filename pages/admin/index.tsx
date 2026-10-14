@@ -1,6 +1,5 @@
 import type { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
 import Link from "next/link";
 import {
   CheckIcon,
@@ -12,12 +11,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/solid";
 import { ListBulletIcon } from "@heroicons/react/24/outline";
-import {
-  AnimatePresence,
-  LayoutGroup,
-  motion,
-  useReducedMotion,
-} from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   useCallback,
   useEffect,
@@ -38,12 +32,8 @@ import {
   formatJalaliDate,
   toFaDigits,
 } from "../../utils/fa";
-import {
-  galleryItem,
-  snappySpring,
-  softSpring,
-  staggerContainer,
-} from "../../utils/motion";
+import { softSpring } from "../../utils/motion";
+import { lightboxUrl } from "../../utils/cloudinaryUrl";
 
 type Tab = "pending" | "approved" | "hidden";
 type ViewMode = "grid" | "list";
@@ -79,7 +69,24 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 function fullUrl(photo: AdminPhoto) {
-  return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,g_auto,w_1600,h_1067,f_auto,q_auto/${photo.public_id}.${photo.format}`;
+  return lightboxUrl(photo.public_id, photo.format);
+}
+
+/** Client-cache tabs that may go stale after an action on `fromTab`. */
+function relatedTabs(fromTab: Tab, action: string): Tab[] {
+  const tabs = new Set<Tab>([fromTab]);
+  if (action === "approve") tabs.add("approved");
+  if (action === "hide") tabs.add("hidden");
+  if (action === "unhide") {
+    tabs.add("approved");
+    tabs.add("hidden");
+  }
+  if (action === "delete" || action === "reject") {
+    tabs.add("pending");
+    tabs.add("approved");
+    tabs.add("hidden");
+  }
+  return Array.from(tabs);
 }
 
 function photoDate(photo: AdminPhoto) {
@@ -132,7 +139,6 @@ const AdminPanel: NextPage = () => {
   const [sortOpen, setSortOpen] = useState(false);
   const [query, setQuery] = useState("");
   const sortRef = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -197,6 +203,35 @@ const AdminPanel: NextPage = () => {
       load(tab);
     }
   }, [tab, load]);
+
+  // Prefetch other tabs while idle so switching feels instant
+  useEffect(() => {
+    const others = TABS.map((t) => t.id).filter((id) => id !== tab);
+    let cancelled = false;
+    const run = () => {
+      others.forEach((status) => {
+        if (cancelled || getAdminCache(status)) return;
+        fetch(`/api/admin/photos?status=${status}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (!cancelled && data?.photos) setAdminCache(status, data.photos);
+          })
+          .catch(() => {});
+      });
+    };
+    const ric = (window as any).requestIdleCallback as
+      | undefined
+      | ((cb: () => void) => number);
+    const id = ric ? ric(run) : window.setTimeout(run, 400);
+    return () => {
+      cancelled = true;
+      if (ric && typeof (window as any).cancelIdleCallback === "function") {
+        (window as any).cancelIdleCallback(id);
+      } else {
+        clearTimeout(id);
+      }
+    };
+  }, [tab]);
 
   const visiblePhotos = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -274,6 +309,24 @@ const AdminPanel: NextPage = () => {
     );
   }
 
+  function applyOptimisticRemoval(ids: string[], action: string) {
+    const remove = new Set(ids);
+    setPhotos((prev) => {
+      const next = prev.filter((p) => !remove.has(p.public_id));
+      setAdminCache(tab, next);
+      return next;
+    });
+    setSelected((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    });
+    setPreviewIndex(null);
+    for (const t of relatedTabs(tab, action)) {
+      if (t !== tab) invalidateAdminCache(t);
+    }
+  }
+
   async function runAction(publicId: string, action: string) {
     if (!confirmDestructive(action, 1)) return;
     setBusyId(publicId);
@@ -296,9 +349,7 @@ const AdminPanel: NextPage = () => {
         throw new Error(data.error || "عملیات ناموفق بود");
       }
       setSuccess(`${ACTION_LABELS[action] || "انجام شد"} — ${toFaDigits(1)} عکس`);
-      invalidateAdminCache();
-      setPreviewIndex(null);
-      await load(tab, { silent: true });
+      applyOptimisticRemoval([publicId], action);
     } catch (e: any) {
       setError(e.message || "عملیات ناموفق بود");
     } finally {
@@ -332,9 +383,11 @@ const AdminPanel: NextPage = () => {
           ? `${label}: ${toFaDigits(data.processed)} موفق، ${toFaDigits(data.failed)} ناموفق`
           : `${label}: ${toFaDigits(data.processed)} عکس`,
       );
-      invalidateAdminCache();
-      setPreviewIndex(null);
-      await load(tab, { silent: true });
+      applyOptimisticRemoval(publicIds, action);
+      if (data.failed) {
+        invalidateAdminCache(tab);
+        await load(tab, { silent: true });
+      }
     } catch (e: any) {
       setError(e.message || "عملیات گروهی ناموفق بود");
     } finally {
@@ -533,6 +586,7 @@ const AdminPanel: NextPage = () => {
             </button>
             <Link
               href="/"
+              prefetch
               className="rounded-xl border border-white/30 px-3 py-2 text-sm hover:bg-white/10"
             >
               گالری
@@ -569,7 +623,7 @@ const AdminPanel: NextPage = () => {
                 <motion.span
                   layoutId="admin-tab"
                   className="absolute inset-0 rounded-xl bg-white"
-                  transition={snappySpring}
+                  transition={{ type: "spring", stiffness: 400, damping: 34 }}
                 />
               )}
               <span className="relative z-10">{t.label}</span>
@@ -812,161 +866,142 @@ const AdminPanel: NextPage = () => {
         ) : visiblePhotos.length === 0 ? (
           <p className="text-white/60">نتیجه‌ای برای جستجو پیدا نشد.</p>
         ) : viewMode === "list" ? (
-          <LayoutGroup>
-            <motion.div
-              key={`${tab}-list`}
-              className="overflow-hidden rounded-xl border border-white/10"
-              variants={staggerContainer}
-              initial={reduceMotion ? false : "hidden"}
-              animate="show"
-            >
-              <div className="hidden grid-cols-[3.5rem_minmax(0,1fr)_7rem_9rem_auto] gap-3 border-b border-white/10 bg-white/5 px-3 py-2 text-xs text-white/45 sm:grid">
-                <span />
-                <span>نام</span>
-                <span>حجم</span>
-                <span>تاریخ</span>
-                <span>عملیات</span>
-              </div>
-              {visiblePhotos.map((photo, index) => {
-                const isSelected = selected.has(photo.public_id);
-                const dateLabel = formatJalaliDate(photoDate(photo));
-                return (
-                  <motion.div
-                    key={photo.public_id}
-                    variants={galleryItem}
-                    layout
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => !busy && toggleOne(photo.public_id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        if (!busy) toggleOne(photo.public_id);
-                      }
-                    }}
-                    className={`relative grid cursor-pointer grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-white/5 px-3 py-2 sm:grid-cols-[3.5rem_minmax(0,1fr)_7rem_9rem_auto] ${
-                      isSelected ? "bg-emerald-500/10" : "hover:bg-white/[0.04]"
-                    }`}
-                  >
-                    <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-md border border-white/10">
-                      <Image
-                        src={photo.url}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="56px"
-                        loading="lazy"
-                      />
-                      {isSelected && (
-                        <span className="absolute inset-0 flex items-center justify-center bg-emerald-500/35">
-                          <CheckIcon className="h-5 w-5 text-white" />
-                        </span>
-                      )}
-                    </div>
+          <div
+            key={`${tab}-list`}
+            className="overflow-hidden rounded-xl border border-white/10"
+          >
+            <div className="hidden grid-cols-[3.5rem_minmax(0,1fr)_7rem_9rem_auto] gap-3 border-b border-white/10 bg-white/5 px-3 py-2 text-xs text-white/45 sm:grid">
+              <span />
+              <span>نام</span>
+              <span>حجم</span>
+              <span>تاریخ</span>
+              <span>عملیات</span>
+            </div>
+            {visiblePhotos.map((photo, index) => {
+              const isSelected = selected.has(photo.public_id);
+              const dateLabel = formatJalaliDate(photoDate(photo));
+              return (
+                <div
+                  key={photo.public_id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => !busy && toggleOne(photo.public_id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (!busy) toggleOne(photo.public_id);
+                    }
+                  }}
+                  className={`relative grid cursor-pointer grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-white/5 px-3 py-2 sm:grid-cols-[3.5rem_minmax(0,1fr)_7rem_9rem_auto] ${
+                    isSelected ? "bg-emerald-500/10" : "hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-md border border-white/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    {isSelected && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-emerald-500/35">
+                        <CheckIcon className="h-5 w-5 text-white" />
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="min-w-0 text-right">
-                      <p className="truncate text-sm font-medium text-white">
-                        {photo.filename}
-                      </p>
-                      <p className="truncate text-[11px] text-white/40 sm:hidden">
-                        {formatFileSize(photo.bytes)}
-                        {dateLabel ? ` · ${dateLabel}` : ""}
-                      </p>
-                    </div>
-
-                    <p className="hidden text-sm text-white/70 sm:block">
+                  <div className="min-w-0 text-right">
+                    <p className="truncate text-sm font-medium text-white">
+                      {photo.filename}
+                    </p>
+                    <p className="truncate text-[11px] text-white/40 sm:hidden">
                       {formatFileSize(photo.bytes)}
+                      {dateLabel ? ` · ${dateLabel}` : ""}
                     </p>
-                    <p className="hidden text-sm text-white/70 sm:block">
-                      {dateLabel || "—"}
-                    </p>
+                  </div>
 
-                    <div
-                      className="col-span-full flex flex-wrap gap-1.5 sm:col-span-1 sm:justify-end"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {renderCardIcons(photo, index)}
-                    </div>
+                  <p className="hidden text-sm text-white/70 sm:block">
+                    {formatFileSize(photo.bytes)}
+                  </p>
+                  <p className="hidden text-sm text-white/70 sm:block">
+                    {dateLabel || "—"}
+                  </p>
 
+                  <div
+                    className="col-span-full flex flex-wrap gap-1.5 sm:col-span-1 sm:justify-end"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {renderCardIcons(photo, index)}
+                  </div>
+
+                  {(busyId === photo.public_id ||
+                    (bulkBusy && isSelected)) && (
+                    <div className="pointer-events-none absolute inset-0 bg-black/40" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div
+            key={`${tab}-grid`}
+            className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7"
+          >
+            {visiblePhotos.map((photo, index) => {
+              const isSelected = selected.has(photo.public_id);
+              return (
+                <div
+                  key={photo.public_id}
+                  className={`group relative overflow-hidden rounded-xl border bg-white/5 ${
+                    isSelected
+                      ? "border-emerald-400 ring-1 ring-emerald-400/50"
+                      : "border-white/10"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => toggleOne(photo.public_id)}
+                    className="relative block aspect-[3/2] w-full cursor-pointer"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.url}
+                      alt="پیش‌نمایش عکس"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    {isSelected && (
+                      <span className="absolute top-1.5 right-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-black shadow">
+                        <CheckIcon className="h-4 w-4" />
+                      </span>
+                    )}
                     {(busyId === photo.public_id ||
                       (bulkBusy && isSelected)) && (
-                      <div className="pointer-events-none absolute inset-0 bg-black/40" />
-                    )}
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </LayoutGroup>
-        ) : (
-          <LayoutGroup>
-            <motion.div
-              key={`${tab}-grid`}
-              className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7"
-              variants={staggerContainer}
-              initial={reduceMotion ? false : "hidden"}
-              animate="show"
-            >
-              {visiblePhotos.map((photo, index) => {
-                const isSelected = selected.has(photo.public_id);
-                return (
-                  <motion.div
-                    key={photo.public_id}
-                    variants={galleryItem}
-                    layout
-                    whileHover={
-                      reduceMotion
-                        ? undefined
-                        : { y: -4, scale: 1.03, transition: snappySpring }
-                    }
-                    className={`group relative overflow-hidden rounded-xl border bg-white/5 ${
-                      isSelected
-                        ? "border-emerald-400 ring-1 ring-emerald-400/50"
-                        : "border-white/10"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => toggleOne(photo.public_id)}
-                      className="relative block aspect-[3/2] w-full cursor-pointer"
-                    >
-                      <Image
-                        src={photo.url}
-                        alt="پیش‌نمایش عکس"
-                        fill
-                        className="object-cover transition duration-500 group-hover:scale-105 group-hover:brightness-110"
-                        sizes="(max-width: 640px) 33vw, 14vw"
-                        loading="lazy"
-                      />
-                      {isSelected && (
-                        <span className="absolute top-1.5 right-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-black shadow">
-                          <CheckIcon className="h-4 w-4" />
-                        </span>
-                      )}
-                      {(busyId === photo.public_id ||
-                        (bulkBusy && isSelected)) && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/55 text-[10px]">
-                          …
-                        </div>
-                      )}
-                    </button>
-
-                    <div className="space-y-1.5 p-1.5">
-                      <p className="truncate text-[10px] text-white/55">
-                        {photo.filename}
-                      </p>
-                      <p className="text-[10px] text-white/40">
-                        {formatFileSize(photo.bytes)}
-                      </p>
-                      <div className="flex items-center justify-center gap-1.5">
-                        {renderCardIcons(photo, index)}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/55 text-[10px]">
+                        …
                       </div>
+                    )}
+                  </button>
+
+                  <div className="space-y-1.5 p-1.5">
+                    <p className="truncate text-[10px] text-white/55">
+                      {photo.filename}
+                    </p>
+                    <p className="text-[10px] text-white/40">
+                      {formatFileSize(photo.bytes)}
+                    </p>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {renderCardIcons(photo, index)}
                     </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </LayoutGroup>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </main>
 
@@ -983,7 +1018,7 @@ const AdminPanel: NextPage = () => {
             <button
               type="button"
               aria-label="بستن"
-              className="absolute inset-0 bg-black/80 backdrop-blur-2xl"
+              className="absolute inset-0 bg-black/85"
               onClick={() => setPreviewIndex(null)}
             />
 
@@ -995,14 +1030,13 @@ const AdminPanel: NextPage = () => {
               transition={{ duration: 0.2 }}
             >
               <div className="relative aspect-[3/2] overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl">
-                <Image
-                  key={previewPhoto.public_id}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={fullUrl(previewPhoto)}
                   alt="نمایش بزرگ"
-                  fill
-                  className="object-cover"
-                  sizes="100vw"
-                  priority
+                  className="absolute inset-0 h-full w-full object-cover"
+                  decoding="async"
+                  fetchPriority="high"
                 />
 
                 {previewIndex > 0 && (

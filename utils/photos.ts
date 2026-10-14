@@ -1,5 +1,11 @@
 import cloudinary from "./cloudinary";
+import { thumbUrl } from "./cloudinaryUrl";
 import { photoDisplayName } from "./fa";
+import {
+  getCachedList,
+  invalidatePhotoListCache,
+  setCachedList,
+} from "./photoListCache";
 import type { ImageProps } from "./types";
 
 export type PhotoStatus = "pending" | "approved" | "hidden" | "rejected" | "all";
@@ -25,6 +31,10 @@ export const BLUR_PLACEHOLDER =
   encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="10"><rect width="100%" height="100%" fill="#1a1a1a"/></svg>`,
   );
+
+export function isCloudinaryConfigured() {
+  return Boolean(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim());
+}
 
 function folderExpression() {
   return `folder:${process.env.CLOUDINARY_FOLDER}/*`;
@@ -64,6 +74,17 @@ export async function searchPhotos(
   expression: string,
   sortField: "created_at" | "public_id" = "created_at",
 ) {
+  if (!isCloudinaryConfigured()) {
+    console.warn(
+      "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is missing; returning empty photo list.",
+    );
+    return [] as CloudinaryResource[];
+  }
+
+  const cacheKey = `search:${expression}:${sortField}`;
+  const cached = getCachedList<CloudinaryResource[]>(cacheKey);
+  if (cached) return cached;
+
   const result = await cloudinary.search
     .expression(expression)
     .with_field("tags")
@@ -72,7 +93,13 @@ export async function searchPhotos(
     .max_results(400)
     .execute();
 
-  return (result.resources || []) as CloudinaryResource[];
+  const resources = (result.resources || []) as CloudinaryResource[];
+  setCachedList(cacheKey, resources);
+  return resources;
+}
+
+export function bustPhotoCaches() {
+  invalidatePhotoListCache();
 }
 
 export async function getPublicGalleryImages(): Promise<ImageProps[]> {
@@ -114,23 +141,10 @@ export function resourceToAdminPhoto(resource: CloudinaryResource) {
     approved_at: ctx.approved_at,
     bytes: resource.bytes ?? 0,
     filename: photoDisplayName(resource.public_id, ctx.original_filename),
-    url: cloudinaryUrl(
-      resource.public_id,
-      resource.format,
-      "c_fill,g_auto,w_720,h_480,f_auto,q_auto",
-    ),
+    url: thumbUrl(resource.public_id, resource.format),
   };
 }
 
 export async function destroyPhoto(publicId: string) {
   await cloudinary.uploader.destroy(publicId, { invalidate: true });
-}
-
-/** Crop/fill + auto format/quality for uniform, fast delivery. */
-export function cloudinaryUrl(
-  publicId: string,
-  format: string,
-  transform = "c_fill,g_auto,w_720,h_480,f_auto,q_auto",
-) {
-  return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${transform}/${publicId}.${format}`;
 }

@@ -6,15 +6,19 @@ class MyDocument extends Document {
       <Html lang="fa" dir="rtl">
         <Head>
           <link rel="icon" href="/favicon.ico" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link
-            rel="preconnect"
-            href="https://fonts.gstatic.com"
+            rel="preload"
+            href="/fonts/Vazirmatn-Regular.woff2"
+            as="font"
+            type="font/woff2"
             crossOrigin="anonymous"
           />
           <link
-            href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap"
-            rel="stylesheet"
+            rel="preload"
+            href="/fonts/Vazirmatn-SemiBold.woff2"
+            as="font"
+            type="font/woff2"
+            crossOrigin="anonymous"
           />
           <meta
             name="description"

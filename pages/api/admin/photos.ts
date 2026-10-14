@@ -36,6 +36,7 @@ export default async function handler(
       adminStatusExpression(status),
       "created_at",
     );
+    res.setHeader("Cache-Control", "private, max-age=10");
     return res.status(200).json({
       photos: resources.map(resourceToAdminPhoto),
     });

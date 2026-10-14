@@ -1,6 +1,5 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
@@ -17,7 +16,7 @@ import {
   softSpring,
   staggerContainer,
 } from "../utils/motion";
-import { getPublicGalleryImages } from "../utils/photos";
+import { cardUrl } from "../utils/cloudinaryUrl";
 import type { ImageProps } from "../utils/types";
 import { useLastViewedPhoto } from "../utils/useLastViewedPhoto";
 
@@ -118,7 +117,7 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
         )}
 
         <motion.div
-          className="after:content relative mb-4 flex min-h-[520px] flex-col items-center justify-end gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] px-6 pb-16 pt-64 text-center text-white shadow-highlight backdrop-blur-sm after:pointer-events-none after:absolute after:inset-0 after:rounded-2xl after:shadow-highlight lg:min-h-[560px] lg:pt-0"
+          className="after:content relative mb-4 flex min-h-[520px] flex-col items-center justify-end gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] px-6 pb-16 pt-64 text-center text-white shadow-highlight after:pointer-events-none after:absolute after:inset-0 after:rounded-2xl after:shadow-highlight lg:min-h-[560px] lg:pt-0"
           initial={reduceMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={softSpring}
@@ -171,6 +170,7 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
             >
               <MotionLink
                 href="/upload"
+                prefetch
                 whileHover={reduceMotion ? undefined : { scale: 1.04, y: -2 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.97 }}
                 transition={snappySpring}
@@ -180,10 +180,11 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
               </MotionLink>
               <MotionLink
                 href="/admin/login"
+                prefetch
                 whileHover={reduceMotion ? undefined : { scale: 1.04, y: -2 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.97 }}
                 transition={snappySpring}
-                className="rounded-xl border border-white/35 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-md"
+                className="rounded-xl border border-white/35 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white"
               >
                 ورود مدیر
               </MotionLink>
@@ -211,7 +212,7 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
                 {toFaDigits(images.length)} عکس
               </p>
               <div
-                className="relative flex items-center gap-1 rounded-xl border border-white/15 bg-white/5 p-1 backdrop-blur-md"
+                className="relative flex items-center gap-1 rounded-xl border border-white/15 bg-white/5 p-1"
                 role="group"
                 aria-label="اندازه نمایش کارت‌ها"
               >
@@ -251,7 +252,7 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
                 initial={reduceMotion ? false : "hidden"}
                 animate="show"
               >
-                {images.map(({ id, public_id, format, blurDataUrl }, index) => (
+                {images.map(({ id, public_id, format }, index) => (
                   <motion.div
                     key={id}
                     variants={galleryItem}
@@ -274,16 +275,14 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
                       shallow
                       className="after:content group relative block aspect-[3/2] w-full cursor-zoom-in overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 after:pointer-events-none after:absolute after:inset-0 after:rounded-xl after:shadow-highlight"
                     >
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         alt={`عکس ${toFaDigits(id + 1)}`}
-                        className="object-cover brightness-[0.88] transition duration-500 will-change-transform group-hover:scale-105 group-hover:brightness-110"
-                        style={{ transform: "translate3d(0, 0, 0)" }}
-                        placeholder="blur"
-                        blurDataURL={blurDataUrl}
-                        src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,g_auto,w_720,h_480,f_auto,q_auto/${public_id}.${format}`}
-                        fill
-                        priority={index < 4}
-                        sizes={mode.sizes}
+                        className="absolute inset-0 h-full w-full object-cover brightness-[0.88] transition duration-300 will-change-transform group-hover:scale-105 group-hover:brightness-110"
+                        src={cardUrl(public_id, format)}
+                        loading={index < 6 ? "eager" : "lazy"}
+                        decoding="async"
+                        fetchPriority={index < 4 ? "high" : "auto"}
                       />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
                     </Link>
@@ -309,12 +308,12 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
 export default Home;
 
 export async function getStaticProps() {
+  const { getPublicGalleryImages } = await import("../utils/photos");
   const images = await getPublicGalleryImages();
   return {
     props: {
       images,
     },
-    // Cache page data so client navigations don't refetch every time
-    revalidate: 20,
+    revalidate: 300,
   };
 }

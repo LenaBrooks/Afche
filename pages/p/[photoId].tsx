@@ -2,8 +2,8 @@ import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Carousel from "../../components/Carousel";
+import { cardUrl } from "../../utils/cloudinaryUrl";
 import { toFaDigits } from "../../utils/fa";
-import { BLUR_PLACEHOLDER, getPublicGalleryImages } from "../../utils/photos";
 import type { ImageProps } from "../../utils/types";
 
 const Home: NextPage = ({ currentPhoto }: { currentPhoto: ImageProps }) => {
@@ -19,7 +19,7 @@ const Home: NextPage = ({ currentPhoto }: { currentPhoto: ImageProps }) => {
     );
   }
 
-  const currentPhotoUrl = `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,g_auto,w_1200,h_630,f_auto,q_auto/${currentPhoto.public_id}.${currentPhoto.format}`;
+  const currentPhotoUrl = cardUrl(currentPhoto.public_id, currentPhoto.format);
 
   return (
     <>
@@ -38,23 +38,24 @@ const Home: NextPage = ({ currentPhoto }: { currentPhoto: ImageProps }) => {
 export default Home;
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const images = await getPublicGalleryImages();
+  // Don't call Cloudinary at build time — env may be missing in CI.
   return {
-    paths: images.map((img) => ({
-      params: { photoId: String(img.id) },
-    })),
+    paths: [],
     fallback: "blocking",
   };
 };
 
 export const getStaticProps: GetStaticProps = async (context) => {
+  const { BLUR_PLACEHOLDER, getPublicGalleryImages } = await import(
+    "../../utils/photos"
+  );
   const images = await getPublicGalleryImages();
   const currentPhoto = images.find(
     (img) => img.id === Number(context.params?.photoId),
   );
 
   if (!currentPhoto) {
-    return { notFound: true, revalidate: 20 };
+    return { notFound: true, revalidate: 300 };
   }
 
   currentPhoto.blurDataUrl = BLUR_PLACEHOLDER;
@@ -63,6 +64,6 @@ export const getStaticProps: GetStaticProps = async (context) => {
     props: {
       currentPhoto,
     },
-    revalidate: 20,
+    revalidate: 300,
   };
 };

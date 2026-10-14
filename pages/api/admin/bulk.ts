@@ -45,6 +45,12 @@ export default async function handler(
     const ok = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.length - ok;
 
+    try {
+      await res.revalidate("/");
+    } catch {
+      /* ISR may be unavailable in some runtimes */
+    }
+
     return res.status(200).json({
       ok: true,
       action,

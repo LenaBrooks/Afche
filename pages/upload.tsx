@@ -29,7 +29,27 @@ type QueueItem = {
   error?: string;
 };
 
-function uploadOne(
+type UploadConfig = {
+  cloudName: string;
+  folder: string;
+  uploadPreset: string | null;
+  direct: boolean;
+};
+
+let cachedUploadConfig: UploadConfig | null = null;
+
+async function getUploadConfig(): Promise<UploadConfig> {
+  if (cachedUploadConfig) return cachedUploadConfig;
+  const res = await fetch("/api/upload/config");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "پیکربندی آپلود در دسترس نیست");
+  }
+  cachedUploadConfig = data as UploadConfig;
+  return cachedUploadConfig;
+}
+
+function uploadViaServer(
   file: File,
   onProgress: (percent: number) => void,
 ): Promise<{ message?: string }> {
@@ -59,6 +79,69 @@ function uploadOne(
     body.append("file", file);
     xhr.send(body);
   });
+}
+
+function uploadDirectToCloudinary(
+  file: File,
+  config: UploadConfig,
+  onProgress: (percent: number) => void,
+): Promise<{ message?: string }> {
+  return new Promise((resolve, reject) => {
+    if (!config.uploadPreset) {
+      reject(new Error("آپلود مستقیم نیاز به Upload Preset دارد"));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(
+      "POST",
+      `https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`,
+    );
+    xhr.responseType = "json";
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+
+    xhr.onload = () => {
+      const data = xhr.response || {};
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve({ message: "آپلود شد" });
+        return;
+      }
+      const msg =
+        data?.error?.message || data?.error || "آپلود به Cloudinary ناموفق بود";
+      reject(new Error(typeof msg === "string" ? msg : "آپلود ناموفق بود"));
+    };
+
+    xhr.onerror = () => reject(new Error("خطای شبکه. دوباره تلاش کنید."));
+    xhr.onabort = () => reject(new Error("آپلود لغو شد"));
+
+    const body = new FormData();
+    body.append("file", file);
+    body.append("upload_preset", config.uploadPreset);
+    body.append("folder", config.folder);
+    body.append("tags", "pending");
+    const original = file.name.replace(/[|=]/g, "_") || "photo";
+    body.append("context", `original_filename=${original}`);
+    xhr.send(body);
+  });
+}
+
+async function uploadOne(
+  file: File,
+  onProgress: (percent: number) => void,
+): Promise<{ message?: string }> {
+  try {
+    const config = await getUploadConfig();
+    if (config.direct && config.uploadPreset) {
+      return uploadDirectToCloudinary(file, config, onProgress);
+    }
+  } catch {
+    /* fall through to server upload */
+  }
+  return uploadViaServer(file, onProgress);
 }
 
 const UploadPage: NextPage = () => {
@@ -306,7 +389,7 @@ const UploadPage: NextPage = () => {
               }
               whileTap={reduceMotion ? undefined : { scale: 0.98 }}
               transition={snappySpring}
-              className="relative flex cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl border border-dashed border-white/30 bg-white/[0.04] px-4 py-14 text-center backdrop-blur-md"
+              className="relative flex cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl border border-dashed border-white/30 bg-white/[0.04] px-4 py-14 text-center"
             >
               <motion.div
                 className="absolute inset-0 bg-gradient-to-br from-[#e8c58c]/10 via-transparent to-sky-400/10"
@@ -526,6 +609,7 @@ const UploadPage: NextPage = () => {
 
           <Link
             href="/"
+            prefetch
             className="mt-8 inline-block text-sm text-white/60 transition hover:text-white"
           >
             بازگشت به گالری ←
@@ -535,7 +619,7 @@ const UploadPage: NextPage = () => {
         <AnimatePresence>
           {showSuccess && (
             <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

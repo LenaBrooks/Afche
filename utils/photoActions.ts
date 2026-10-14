@@ -1,5 +1,5 @@
 import cloudinary from "./cloudinary";
-import { destroyPhoto } from "./photos";
+import { bustPhotoCaches, destroyPhoto } from "./photos";
 
 export type PhotoAction = "approve" | "reject" | "hide" | "unhide" | "delete";
 
@@ -17,6 +17,7 @@ export async function applyPhotoAction(
 ) {
   if (action === "delete" || action === "reject") {
     await destroyPhoto(publicId);
+    bustPhotoCaches();
     return;
   }
 
@@ -29,15 +30,18 @@ export async function applyPhotoAction(
       `approved_at=${new Date().toISOString()}`,
       [publicId],
     );
+    bustPhotoCaches();
     return;
   }
 
   if (action === "hide") {
     await cloudinary.uploader.add_tag("hidden", [publicId]);
+    bustPhotoCaches();
     return;
   }
 
   if (action === "unhide") {
     await cloudinary.uploader.remove_tag("hidden", [publicId]);
+    bustPhotoCaches();
   }
 }

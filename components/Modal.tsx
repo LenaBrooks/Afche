@@ -34,9 +34,10 @@ export default function Modal({
   }
 
   function changePhotoId(newVal: number) {
+    // Update UI first, then sync URL — never wait on router for the photo swap.
     setDirection(newVal > curIndex ? 1 : -1);
     setCurIndex(newVal);
-    router.push(
+    void router.push(
       {
         pathname: "/",
         query: { photoId: newVal },
@@ -71,10 +72,10 @@ export default function Modal({
         ref={overlayRef}
         as={motion.div}
         key="backdrop"
-        className="fixed inset-0 z-30 bg-black/75 backdrop-blur-2xl"
+        className="fixed inset-0 z-30 bg-black/80"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.12 }}
       />
       <SharedModal
         index={curIndex}

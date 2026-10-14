@@ -61,7 +61,7 @@ const AdminLogin: NextPage = () => {
             hidden: {},
             show: { transition: { staggerChildren: 0.08 } },
           }}
-          className="relative rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-md sm:p-8"
+          className="relative rounded-2xl border border-white/10 bg-white/[0.04] p-6 sm:p-8"
         >
           <motion.h1 variants={fadeUp} className="mb-2 text-2xl font-semibold">
             ورود مدیر

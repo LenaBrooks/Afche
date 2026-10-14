@@ -1,5 +1,3 @@
-import type { PhotoStatus } from "./photos";
-
 export type AdminPhoto = {
   public_id: string;
   format: string;
@@ -14,7 +12,7 @@ export type AdminPhoto = {
   url: string;
 };
 
-type Tab = Extract<PhotoStatus, "pending" | "approved" | "hidden">;
+type Tab = "pending" | "approved" | "hidden";
 
 const cache = new Map<Tab, AdminPhoto[]>();
 
