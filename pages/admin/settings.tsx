@@ -13,6 +13,7 @@ import {
   type AdminPhoto,
 } from "../../utils/adminCache";
 import { heroUrl, thumbUrl } from "../../utils/cloudinaryUrl";
+import { notifyGalleryUpdated } from "../../utils/gallerySync";
 import {
   applySiteTheme,
   DEFAULT_SITE_SETTINGS,
@@ -148,6 +149,7 @@ const AdminSettings: NextPage = () => {
       setCoverFormat(settings.coverFormat);
       setSavedSnapshot(settings);
       applySiteTheme(settings.theme);
+      void notifyGalleryUpdated();
       toast.success("تنظیمات ذخیره شد");
     } catch (error: any) {
       toast.error(error?.message || "ذخیره ناموفق بود");

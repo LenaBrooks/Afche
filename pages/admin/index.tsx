@@ -48,6 +48,7 @@ import {
   formatJalaliDate,
   toFaDigits,
 } from "../../utils/fa";
+import { notifyGalleryUpdated } from "../../utils/gallerySync";
 
 type Tab = "pending" | "approved" | "hidden";
 type ViewMode = "grid" | "list";
@@ -474,6 +475,7 @@ const AdminPanel: NextPage = () => {
           `${ACTION_LABELS[action] || "انجام شد"} — ${toFaDigits(1)} عکس`,
         );
         applyOptimisticRemoval([publicId], action);
+        void notifyGalleryUpdated();
       } catch (e: any) {
         const msg = e.message || "عملیات ناموفق بود";
         setError(msg);
@@ -511,6 +513,7 @@ const AdminPanel: NextPage = () => {
             : `${label}: ${toFaDigits(data.processed)} عکس`,
         );
         applyOptimisticRemoval(publicIds, action);
+        void notifyGalleryUpdated();
         if (data.failed) {
           invalidateAdminCache(tab);
           await load(tab, { silent: true });
@@ -606,6 +609,7 @@ const AdminPanel: NextPage = () => {
           ? `${toFaDigits(data.processed)} آپلود شد، ${toFaDigits(data.failed)} ناموفق`
           : `${toFaDigits(data.processed)} عکس آپلود و منتشر شد`,
       );
+      void notifyGalleryUpdated();
       void load("approved", { silent: true });
     } catch (e: any) {
       toast.error(e?.message || "آپلود ناموفق بود");

@@ -2,12 +2,18 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Bridge from "../components/Icons/Bridge";
 import Logo from "../components/Icons/Logo";
+import GalleryCard from "../components/GalleryCard";
 import Modal from "../components/Modal";
 import { toFaDigits } from "../utils/fa";
+import {
+  clearGalleryStale,
+  isGalleryStale,
+} from "../utils/gallerySync";
 import {
   fadeUp,
   galleryItem,
@@ -16,7 +22,7 @@ import {
   softSpring,
   staggerContainer,
 } from "../utils/motion";
-import { cardUrl, heroUrl } from "../utils/cloudinaryUrl";
+import { heroUrl } from "../utils/cloudinaryUrl";
 import {
   DEFAULT_SITE_SETTINGS,
   type SiteSettings,
@@ -87,8 +93,8 @@ function photoTime(photo: ImageProps) {
 }
 
 const Home: NextPage = ({
-  images,
-  settings,
+  images: initialImages,
+  settings: initialSettings,
 }: {
   images: ImageProps[];
   settings: SiteSettings;
@@ -96,12 +102,19 @@ const Home: NextPage = ({
   const router = useRouter();
   const { photoId } = router.query;
   const [lastViewedPhoto, setLastViewedPhoto] = useLastViewedPhoto();
+  const [images, setImages] = useState(initialImages);
+  const [settings, setSettings] = useState(initialSettings);
+  const [galleryRefreshing, setGalleryRefreshing] = useState(false);
   const [density, setDensity] = useState<ViewDensity>(2);
   const [sort, setSort] = useState<GallerySort>("newest");
   const [randomSeed, setRandomSeed] = useState(() => Date.now());
+  const [sortOpen, setSortOpen] = useState(false);
+  const [densityOpen, setDensityOpen] = useState(false);
   const reduceMotion = useReducedMotion();
 
   const lastViewedPhotoRef = useRef<HTMLAnchorElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
+  const densityRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -121,11 +134,83 @@ const Home: NextPage = ({
   }, []);
 
   useEffect(() => {
+    setImages(initialImages);
+    setSettings(initialSettings);
+  }, [initialImages, initialSettings]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refreshGallery(force = false) {
+      if (!force && !isGalleryStale()) return;
+      setGalleryRefreshing(true);
+      try {
+        const res = await fetch(`/api/gallery?t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (Array.isArray(data.images)) setImages(data.images);
+        if (data.settings) setSettings(data.settings);
+        clearGalleryStale();
+      } catch {
+        /* keep SSR props */
+      } finally {
+        if (!cancelled) setGalleryRefreshing(false);
+      }
+    }
+
+    void refreshGallery(true);
+
+    function onVisible() {
+      if (document.visibilityState === "visible") void refreshGallery(false);
+    }
+    function onFocus() {
+      void refreshGallery(false);
+    }
+
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (lastViewedPhoto && !photoId) {
       lastViewedPhotoRef.current?.scrollIntoView({ block: "center" });
       setLastViewedPhoto(null);
     }
   }, [photoId, lastViewedPhoto, setLastViewedPhoto]);
+
+  useEffect(() => {
+    if (!sortOpen && !densityOpen) return;
+    function onDoc(e: MouseEvent) {
+      const t = e.target as Node;
+      if (sortOpen && sortRef.current && !sortRef.current.contains(t)) {
+        setSortOpen(false);
+      }
+      if (densityOpen && densityRef.current && !densityRef.current.contains(t)) {
+        setDensityOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setSortOpen(false);
+        setDensityOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [sortOpen, densityOpen]);
 
   function changeDensity(next: ViewDensity) {
     setDensity(next);
@@ -289,80 +374,135 @@ const Home: NextPage = ({
         ) : (
           <>
             <motion.div
-              className="mb-4 flex flex-wrap items-center justify-between gap-3"
+              className="mb-4 space-y-3"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, ...softSpring }}
             >
-              <p className="fa-num text-sm text-[var(--af-muted)]">
-                {toFaDigits(images.length)} عکس
+              <p className="fa-num flex items-center gap-2 text-sm text-[var(--af-muted)]">
+                <span>{toFaDigits(images.length)} عکس</span>
+                {galleryRefreshing && (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[11px] text-[var(--af-accent)]"
+                    aria-live="polite"
+                  >
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--af-accent)]/30 border-t-[var(--af-accent)]" />
+                    به‌روزرسانی…
+                  </span>
+                )}
               </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <div
-                  className="relative flex items-center gap-1 rounded-xl border border-[var(--af-border)] bg-[var(--af-surface)] p-1"
-                  role="group"
-                  aria-label="مرتب‌سازی"
-                >
-                  {SORT_MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => changeSort(m.id)}
-                      title={
-                        m.id === "random" && sort === "random"
-                          ? "بزن تا دوباره قاطی شود"
-                          : m.label
-                      }
-                      aria-pressed={sort === m.id}
-                      className="relative rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--af-muted)] transition hover:text-[var(--af-text)]"
+
+              <div className="flex items-stretch justify-between gap-3">
+                <div className="relative min-w-0 flex-1" ref={sortRef}>
+                  <button
+                    type="button"
+                    aria-haspopup="listbox"
+                    aria-expanded={sortOpen}
+                    aria-label="مرتب‌سازی"
+                    onClick={() => {
+                      setSortOpen((o) => !o);
+                      setDensityOpen(false);
+                    }}
+                    className="af-focusable flex h-11 w-full items-center justify-between gap-2 rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] px-3 text-sm shadow-[var(--af-shadow-sm)]"
+                  >
+                    <span className="truncate text-[var(--af-text)]">
+                      {SORT_MODES.find((m) => m.id === sort)?.label}
+                    </span>
+                    <ChevronDownIcon
+                      className={`h-4 w-4 shrink-0 text-[var(--af-muted)] transition ${
+                        sortOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  {sortOpen && (
+                    <ul
+                      role="listbox"
+                      className="absolute top-[calc(100%+6px)] right-0 left-0 z-40 overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] py-1 shadow-[var(--af-shadow)]"
                     >
-                      {sort === m.id && (
-                        <motion.span
-                          layoutId="sort-pill"
-                          className="absolute inset-0 rounded-lg bg-[var(--af-ctl-active-bg)]"
-                          transition={snappySpring}
-                        />
-                      )}
-                      <span
-                        className={`relative z-10 ${
-                          sort === m.id ? "text-[var(--af-ctl-active-fg)]" : ""
-                        }`}
-                      >
-                        {m.label}
-                      </span>
-                    </button>
-                  ))}
+                      {SORT_MODES.map((opt) => {
+                        const active = opt.id === sort;
+                        return (
+                          <li key={opt.id}>
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={active}
+                              onClick={() => {
+                                changeSort(opt.id);
+                                setSortOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right text-sm ${
+                                active
+                                  ? "bg-[var(--af-accent-soft)] text-[var(--af-text)]"
+                                  : "text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+                              }`}
+                            >
+                              {opt.label}
+                              {active && (
+                                <CheckIcon className="h-4 w-4 text-[var(--af-accent)]" />
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
-                <div
-                  className="relative flex items-center gap-1 rounded-xl border border-[var(--af-border)] bg-[var(--af-surface)] p-1"
-                  role="group"
-                  aria-label="اندازه نمایش کارت‌ها"
-                >
-                  {VIEW_MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => changeDensity(m.id)}
-                      title={m.label}
-                      aria-pressed={density === m.id}
-                      className="relative rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--af-muted)] transition hover:text-[var(--af-text)]"
+
+                <div className="relative min-w-0 flex-1" ref={densityRef}>
+                  <button
+                    type="button"
+                    aria-haspopup="listbox"
+                    aria-expanded={densityOpen}
+                    aria-label="اندازه نمایش"
+                    onClick={() => {
+                      setDensityOpen((o) => !o);
+                      setSortOpen(false);
+                    }}
+                    className="af-focusable flex h-11 w-full items-center justify-between gap-2 rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] px-3 text-sm shadow-[var(--af-shadow-sm)]"
+                  >
+                    <span className="truncate text-[var(--af-text)]">
+                      {VIEW_MODES.find((m) => m.id === density)?.label}
+                    </span>
+                    <ChevronDownIcon
+                      className={`h-4 w-4 shrink-0 text-[var(--af-muted)] transition ${
+                        densityOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  {densityOpen && (
+                    <ul
+                      role="listbox"
+                      className="absolute top-[calc(100%+6px)] right-0 left-0 z-40 overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] py-1 shadow-[var(--af-shadow)]"
                     >
-                      {density === m.id && (
-                        <motion.span
-                          layoutId="density-pill"
-                          className="absolute inset-0 rounded-lg bg-[var(--af-ctl-active-bg)]"
-                          transition={snappySpring}
-                        />
-                      )}
-                      <span
-                        className={`relative z-10 ${
-                          density === m.id ? "text-[var(--af-ctl-active-fg)]" : ""
-                        }`}
-                      >
-                        {m.label}
-                      </span>
-                    </button>
-                  ))}
+                      {VIEW_MODES.map((opt) => {
+                        const active = opt.id === density;
+                        return (
+                          <li key={opt.id}>
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={active}
+                              onClick={() => {
+                                changeDensity(opt.id);
+                                setDensityOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right text-sm ${
+                                active
+                                  ? "bg-[var(--af-accent-soft)] text-[var(--af-text)]"
+                                  : "text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+                              }`}
+                            >
+                              {opt.label}
+                              {active && (
+                                <CheckIcon className="h-4 w-4 text-[var(--af-accent)]" />
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -377,7 +517,7 @@ const Home: NextPage = ({
               >
                 {sortedImages.map(({ id, public_id, format }, index) => (
                   <motion.div
-                    key={id}
+                    key={`${public_id}-${id}`}
                     variants={galleryItem}
                     layout
                     whileHover={
@@ -387,28 +527,17 @@ const Home: NextPage = ({
                     }
                     whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                   >
-                    <Link
-                      href={`/?photoId=${id}`}
-                      as={`/p/${id}`}
-                      ref={
+                    <GalleryCard
+                      id={id}
+                      publicId={public_id}
+                      format={format}
+                      priority={index < 4}
+                      lastViewedRef={
                         id === Number(lastViewedPhoto)
                           ? lastViewedPhotoRef
                           : null
                       }
-                      shallow
-                      className="after:content group relative block aspect-[3/2] w-full cursor-zoom-in overflow-hidden rounded-xl bg-[var(--af-card-bg)] shadow-[var(--af-shadow-sm)] ring-1 ring-[var(--af-card-ring)] transition after:pointer-events-none after:absolute after:inset-0 after:rounded-xl hover:shadow-[var(--af-shadow)]"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        alt={`عکس ${toFaDigits(id + 1)}`}
-                        className="absolute inset-0 h-full w-full object-cover brightness-[0.88] transition duration-300 will-change-transform group-hover:scale-105 group-hover:brightness-110"
-                        src={cardUrl(public_id, format)}
-                        loading={index < 6 ? "eager" : "lazy"}
-                        decoding="async"
-                        fetchPriority={index < 4 ? "high" : "auto"}
-                      />
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
-                    </Link>
+                    />
                   </motion.div>
                 ))}
               </motion.div>
