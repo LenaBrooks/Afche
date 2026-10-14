@@ -6,7 +6,6 @@ import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Bridge from "../components/Icons/Bridge";
-import Logo from "../components/Icons/Logo";
 import GalleryCard from "../components/GalleryCard";
 import Modal from "../components/Modal";
 import { toFaDigits } from "../utils/fa";
@@ -320,12 +319,9 @@ const Home: NextPage = ({
             initial="hidden"
             animate="show"
           >
-            <motion.div variants={fadeUp}>
-              <Logo />
-            </motion.div>
             <motion.h1
               variants={fadeUp}
-              className="text-shine mt-8 mb-4 text-2xl font-bold tracking-[0.2em] sm:text-3xl"
+              className="text-shine mb-4 text-2xl font-bold tracking-[0.2em] sm:text-3xl"
             >
               {settings.title}
             </motion.h1>
@@ -545,14 +541,6 @@ const Home: NextPage = ({
           </>
         )}
       </main>
-      <motion.footer
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="p-6 text-center text-[var(--af-muted)] sm:p-12"
-      >
-        برای افزودن عکس از دکمه «آپلود عکس» استفاده کنید.
-      </motion.footer>
     </>
   );
 };

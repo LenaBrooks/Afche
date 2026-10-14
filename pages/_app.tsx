@@ -1,5 +1,7 @@
 import type { AppProps } from "next/app";
 import ThemeSync from "../components/ThemeSync";
+import UploadFloatingBar from "../components/UploadFloatingBar";
+import { UploadQueueProvider } from "../components/UploadQueueProvider";
 import { ToastProvider } from "../components/ui/Toast";
 import type { SiteTheme } from "../utils/siteSettingsShared";
 import "../styles/index.css";
@@ -14,8 +16,11 @@ export default function MyApp({ Component, pageProps }: AppProps<PageProps>) {
 
   return (
     <ToastProvider>
-      <ThemeSync theme={theme} />
-      <Component {...pageProps} />
+      <UploadQueueProvider>
+        <ThemeSync theme={theme} />
+        <Component {...pageProps} />
+        <UploadFloatingBar />
+      </UploadQueueProvider>
     </ToastProvider>
   );
 }

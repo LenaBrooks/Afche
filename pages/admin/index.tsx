@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   ArrowPathIcon,
   ArrowRightOnRectangleIcon,
-  ArrowUpTrayIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -12,6 +11,7 @@ import {
   Cog6ToothIcon,
   MagnifyingGlassIcon,
   PhotoIcon,
+  PlusIcon,
   Squares2X2Icon,
 } from "@heroicons/react/24/solid";
 import { ListBulletIcon } from "@heroicons/react/24/outline";
@@ -30,7 +30,6 @@ import Button from "../../components/ui/Button";
 import ConfirmDialog, {
   type ConfirmState,
 } from "../../components/ui/ConfirmDialog";
-import Dropzone from "../../components/ui/Dropzone";
 import EmptyState from "../../components/ui/EmptyState";
 import SegmentedControl from "../../components/ui/SegmentedControl";
 import StatPill from "../../components/ui/StatPill";
@@ -75,15 +74,6 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const PAGE_SIZE = 24;
-const ADMIN_UPLOAD_MAX = 30;
-const ADMIN_UPLOAD_BYTES = 10 * 1024 * 1024;
-const ADMIN_UPLOAD_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/jpg",
-]);
 
 const EMPTY_COPY: Record<Tab, { title: string; description: string }> = {
   pending: {
@@ -176,10 +166,8 @@ const AdminPanel: NextPage = () => {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
-  const [uploading, setUploading] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
   const listTopRef = useRef<HTMLDivElement>(null);
-  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const syncCount = useCallback((status: Tab, list: AdminPhoto[]) => {
     setCounts((prev) => ({ ...prev, [status]: list.length }));
@@ -549,76 +537,6 @@ const AdminPanel: NextPage = () => {
     window.location.href = "/admin/login";
   }
 
-  async function uploadAdminFiles(fileList: FileList | File[]) {
-    const picked = Array.from(fileList);
-    const files = picked.filter((f) => {
-      if (!ADMIN_UPLOAD_TYPES.has(f.type)) return false;
-      if (f.size > ADMIN_UPLOAD_BYTES) return false;
-      return true;
-    });
-
-    if (files.length === 0) {
-      toast.error("فایل معتبری انتخاب نشد (JPEG/PNG/WebP/GIF تا ۱۰ مگ)");
-      return;
-    }
-    if (files.length > ADMIN_UPLOAD_MAX) {
-      toast.error(`حداکثر ${toFaDigits(ADMIN_UPLOAD_MAX)} فایل در هر بار`);
-      return;
-    }
-    if (files.length < picked.length) {
-      toast.push(
-        `${toFaDigits(picked.length - files.length)} فایل رد شد — بقیه آپلود می‌شوند`,
-        "info",
-      );
-    }
-
-    setUploading(true);
-    try {
-      const body = new FormData();
-      for (const file of files) body.append("file", file);
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        body,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "آپلود ناموفق بود");
-
-      const uploaded = (data.photos || []) as AdminPhoto[];
-      const prevApproved =
-        getAdminCache("approved") ||
-        (tab === "approved" ? photos : []);
-      const nextApproved = [
-        ...uploaded,
-        ...prevApproved.filter(
-          (p) => !uploaded.some((u) => u.public_id === p.public_id),
-        ),
-      ];
-      setAdminCache("approved", nextApproved);
-      syncCount("approved", nextApproved);
-
-      if (tab !== "approved") {
-        setTab("approved");
-      } else {
-        setPhotos(nextApproved);
-        setSelected(new Set());
-        setPage(1);
-      }
-
-      toast.success(
-        data.failed
-          ? `${toFaDigits(data.processed)} آپلود شد، ${toFaDigits(data.failed)} ناموفق`
-          : `${toFaDigits(data.processed)} عکس آپلود و منتشر شد`,
-      );
-      void notifyGalleryUpdated();
-      void load("approved", { silent: true });
-    } catch (e: any) {
-      toast.error(e?.message || "آپلود ناموفق بود");
-    } finally {
-      setUploading(false);
-      if (uploadInputRef.current) uploadInputRef.current.value = "";
-    }
-  }
-
   const busy = bulkBusy || busyId !== null;
 
   function sheetActions(photo: AdminPhoto, index: number): ActionSheetItem[] {
@@ -779,46 +697,20 @@ const AdminPanel: NextPage = () => {
             </p>
           </div>
           <div className="flex shrink-0 gap-1.5">
-            <input
-              ref={uploadInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files?.length) {
-                  void uploadAdminFiles(e.target.files);
-                }
-              }}
-            />
-            <Button
-              type="button"
-              size="sm"
-              loading={uploading}
-              disabled={busy}
-              onClick={() => uploadInputRef.current?.click()}
-              className="hidden sm:inline-flex"
-            >
-              <ArrowUpTrayIcon className="h-4 w-4" />
-              آپلود
-            </Button>
-            <button
-              type="button"
+            <Link
+              href="/admin/upload"
+              prefetch
               title="آپلود عکس"
               aria-label="آپلود عکس"
-              disabled={uploading || busy}
-              onClick={() => uploadInputRef.current?.click()}
-              className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)] disabled:opacity-40 sm:hidden"
+              className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-accent)]/40 bg-[var(--af-accent-soft)] text-[var(--af-accent)] hover:brightness-110"
             >
-              <ArrowUpTrayIcon
-                className={`h-4 w-4 ${uploading ? "animate-pulse" : ""}`}
-              />
-            </button>
+              <PlusIcon className="h-5 w-5" />
+            </Link>
             <button
               type="button"
               title="تازه‌سازی"
               aria-label="تازه‌سازی"
-              disabled={loading || refreshing || uploading}
+              disabled={loading || refreshing}
               onClick={() => load(tab)}
               className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)] disabled:opacity-40"
             >
@@ -870,20 +762,6 @@ const AdminPanel: NextPage = () => {
               setQuery("");
               setTab(id);
             }}
-          />
-        </div>
-
-        <div className="mb-3 sm:mb-4">
-          <Dropzone
-            compact
-            disabled={uploading || busy}
-            onFiles={(files) => void uploadAdminFiles(files)}
-            title={
-              uploading
-                ? "در حال آپلود…"
-                : "آپلود گروهی — انتخاب یا رها کردن چند عکس"
-            }
-            hint={`چند فایل با هم · JPEG/PNG/WebP/GIF · تا ${toFaDigits(ADMIN_UPLOAD_MAX)} فایل · مستقیم منتشر می‌شود`}
           />
         </div>
 
@@ -1062,14 +940,14 @@ const AdminPanel: NextPage = () => {
             title={EMPTY_COPY[tab].title}
             description={EMPTY_COPY[tab].description}
             action={
-              <Button
-                type="button"
-                loading={uploading}
-                onClick={() => uploadInputRef.current?.click()}
+              <Link
+                href="/admin/upload"
+                prefetch
+                className="af-focusable inline-flex items-center gap-2 rounded-[var(--af-radius-md)] border border-[var(--af-inverse)] bg-[var(--af-inverse)] px-4 py-2.5 text-sm font-semibold text-[var(--af-inverse-text)]"
               >
-                <ArrowUpTrayIcon className="h-4 w-4" />
+                <PlusIcon className="h-4 w-4" />
                 آپلود عکس
-              </Button>
+              </Link>
             }
           />
         ) : visiblePhotos.length === 0 ? (
