@@ -172,31 +172,31 @@ export default function UploadWorkspace({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className="overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)]"
+                    className="overflow-hidden rounded-[var(--af-radius-md)] bg-[var(--af-surface)] shadow-[var(--af-shadow-sm)]"
                   >
-                    <div className="relative aspect-[3/2]">
+                    <div className="relative aspect-square">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.preview}
                         alt=""
                         className="h-full w-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                       <button
                         type="button"
                         title="لغو"
                         aria-label="لغو"
                         onClick={() => askCancelItem(item.id)}
-                        className="af-focusable absolute top-2 left-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--af-danger)] text-white shadow"
+                        className="af-focusable absolute top-1 left-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--af-danger)] text-white shadow"
                       >
-                        <XMarkIcon className="h-4 w-4" />
+                        <XMarkIcon className="h-3.5 w-3.5" />
                       </button>
-                      <div className="absolute inset-x-0 bottom-0 p-2.5">
-                        <div className="mb-1 flex items-center justify-between gap-2 text-[10px]">
+                      <div className="absolute inset-x-0 bottom-0 p-1.5">
+                        <div className="mb-0.5 flex items-center justify-between gap-1 text-[9px]">
                           <span
                             className={
                               item.status === "error"
@@ -210,11 +210,11 @@ export default function UploadWorkspace({
                               ? `${toFaDigits(item.progress)}٪`
                               : STATUS_LABEL[item.status]}
                           </span>
-                          <span className="text-white/55">
+                          <span className="truncate text-white/50">
                             {formatFileSize(item.file.size)}
                           </span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
+                        <div className="h-1 overflow-hidden rounded-full bg-white/15">
                           <div
                             className={`h-full rounded-full transition-[width] duration-200 ${
                               item.status === "error"
@@ -234,16 +234,14 @@ export default function UploadWorkspace({
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-1 px-3 py-2">
-                      <p className="truncate text-sm font-medium">
-                        {item.file.name}
+                    <p className="truncate px-1.5 py-1 text-[10px] text-[var(--af-muted)]">
+                      {item.file.name}
+                    </p>
+                    {item.error && (
+                      <p className="fa-num line-clamp-2 px-1.5 pb-1.5 text-[10px] text-[var(--af-danger)]">
+                        {toFaDigits(item.error)}
                       </p>
-                      {item.error && (
-                        <p className="fa-num line-clamp-2 text-[11px] text-[var(--af-danger)]">
-                          {toFaDigits(item.error)}
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>

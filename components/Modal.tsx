@@ -75,7 +75,7 @@ export default function Modal({
         className="fixed inset-0 z-30 bg-black/80"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.12 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
       />
       <SharedModal
         index={curIndex}

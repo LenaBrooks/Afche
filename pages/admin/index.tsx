@@ -1340,16 +1340,28 @@ const AdminPanel: NextPage = () => {
             />
             <motion.div
               className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col"
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
             >
-              <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[var(--af-radius-lg)] border border-[var(--af-border)] bg-black shadow-[var(--af-shadow)]">
+              <div
+                className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-[var(--af-radius-lg)] bg-black shadow-[var(--af-shadow)]"
+                style={{
+                  aspectRatio:
+                    previewPhoto.width > 0 && previewPhoto.height > 0
+                      ? `${previewPhoto.width} / ${previewPhoto.height}`
+                      : "3 / 2",
+                  maxHeight: "min(78vh, 900px)",
+                }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={fullUrl(previewPhoto)}
                   alt="نمایش بزرگ"
-                  className="max-h-[min(78vh,900px)] max-w-full object-contain"
+                  width={previewPhoto.width}
+                  height={previewPhoto.height}
+                  className="max-h-full max-w-full object-contain"
                   decoding="async"
                   fetchPriority="high"
                 />
@@ -1379,7 +1391,7 @@ const AdminPanel: NextPage = () => {
                   بستن
                 </button>
               </div>
-              <div className="mt-2 rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] p-3 sm:p-4">
+              <div className="mt-2 rounded-[var(--af-radius-md)] bg-[var(--af-surface)] p-3 shadow-[var(--af-shadow-sm)] sm:p-4">
                 <p className="mb-1 truncate text-sm font-medium">
                   {previewPhoto.filename}
                 </p>

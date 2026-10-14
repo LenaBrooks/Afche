@@ -89,42 +89,57 @@ export default function SharedModal({
     currentImage.version,
   );
 
+  const aspect =
+    currentImage.width > 0 && currentImage.height > 0
+      ? currentImage.width / currentImage.height
+      : 3 / 2;
+
   return (
     <MotionConfig
       transition={{
-        x: { type: "spring", stiffness: 420, damping: 38 },
-        opacity: { duration: 0.12 },
+        x: { type: "tween", duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+        opacity: { duration: 0.18, ease: "easeOut" },
       }}
     >
       <div
-        className={`relative z-50 flex w-full max-w-7xl items-center justify-center ${
+        className={`relative z-50 flex w-full max-w-5xl items-center justify-center px-2 ${
           navigation ? "max-h-[min(85vh,900px)] pb-16" : "max-h-[90vh]"
         }`}
         {...handlers}
       >
         <div className="relative flex max-h-[inherit] w-full items-center justify-center overflow-hidden">
-          <AnimatePresence initial={false} custom={direction} mode="popLayout">
+          <AnimatePresence initial={false} custom={direction} mode="sync">
             <motion.div
               key={currentImage.public_id}
-              custom={direction}
+              custom={direction ?? 0}
               variants={variants}
               initial="enter"
               animate="center"
               exit="exit"
               className="flex max-h-[inherit] w-full items-center justify-center"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                ref={mainImgRef}
-                src={mainSrc}
-                alt="تصویر گالری"
-                className={`max-h-[min(85vh,900px)] max-w-full object-contain transition-opacity duration-150 ${
-                  navigation ? "pb-0" : ""
-                } ${imageReady ? "opacity-100" : "opacity-0"}`}
-                decoding="async"
-                fetchPriority="high"
-                onLoad={() => setImageReady(true)}
-              />
+              <div
+                className="relative w-full max-w-full"
+                style={{
+                  aspectRatio: String(aspect),
+                  maxHeight: "min(85vh, 900px)",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={mainImgRef}
+                  src={mainSrc}
+                  alt="تصویر گالری"
+                  width={currentImage.width}
+                  height={currentImage.height}
+                  className={`absolute inset-0 mx-auto h-full w-full object-contain transition-opacity duration-200 ease-out ${
+                    imageReady ? "opacity-100" : "opacity-0"
+                  }`}
+                  decoding="async"
+                  fetchPriority="high"
+                  onLoad={() => setImageReady(true)}
+                />
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
