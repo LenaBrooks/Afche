@@ -581,22 +581,22 @@ const AdminPanel: NextPage = () => {
       if (!res.ok) throw new Error(data.error || "آپلود ناموفق بود");
 
       const uploaded = (data.photos || []) as AdminPhoto[];
-      invalidateAdminCache("approved");
-      setAdminCache("approved", [
+      const prevApproved =
+        getAdminCache("approved") ||
+        (tab === "approved" ? photos : []);
+      const nextApproved = [
         ...uploaded,
-        ...(getAdminCache("approved") || []).filter(
+        ...prevApproved.filter(
           (p) => !uploaded.some((u) => u.public_id === p.public_id),
         ),
-      ]);
-      syncCount(
-        "approved",
-        getAdminCache("approved") || uploaded,
-      );
+      ];
+      setAdminCache("approved", nextApproved);
+      syncCount("approved", nextApproved);
 
       if (tab !== "approved") {
         setTab("approved");
       } else {
-        setPhotos(getAdminCache("approved") || uploaded);
+        setPhotos(nextApproved);
         setSelected(new Set());
         setPage(1);
       }
