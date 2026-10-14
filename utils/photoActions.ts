@@ -15,6 +15,7 @@ export async function applyPhotoAction(
   publicId: string,
   action: PhotoAction,
 ) {
+  // Reject pending (or any) photo = permanent delete from Cloudinary.
   if (action === "delete" || action === "reject") {
     await destroyPhoto(publicId);
     bustPhotoCaches();

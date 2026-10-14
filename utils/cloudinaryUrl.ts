@@ -29,6 +29,15 @@ export function cardUrl(publicId: string, format: string) {
   );
 }
 
+/** Full-bleed homepage hero cover. */
+export function heroUrl(publicId: string, format: string) {
+  return cloudinaryUrl(
+    publicId,
+    format,
+    "c_fill,g_auto,w_1920,h_1080,f_auto,q_auto",
+  );
+}
+
 export function filmstripUrl(publicId: string, format: string) {
   return cloudinaryUrl(
     publicId,
@@ -37,6 +46,7 @@ export function filmstripUrl(publicId: string, format: string) {
   );
 }
 
+/** Full photo for lightbox — fit inside bounds, never crop orientation. */
 export function lightboxUrl(
   publicId: string,
   format: string,
@@ -46,8 +56,8 @@ export function lightboxUrl(
     publicId,
     format,
     wide
-      ? "c_fill,g_auto,w_1920,h_1280,f_auto,q_auto"
-      : "c_fill,g_auto,w_1280,h_853,f_auto,q_auto",
+      ? "c_limit,w_2400,h_2400,f_auto,q_auto"
+      : "c_limit,w_1600,h_1600,f_auto,q_auto",
   );
 }
 

@@ -146,5 +146,15 @@ export function resourceToAdminPhoto(resource: CloudinaryResource) {
 }
 
 export async function destroyPhoto(publicId: string) {
-  await cloudinary.uploader.destroy(publicId, { invalidate: true });
+  const result = await cloudinary.uploader.destroy(publicId, {
+    resource_type: "image",
+    invalidate: true,
+  });
+  // Already gone is fine (idempotent); anything else is a real failure.
+  if (result?.result === "ok" || result?.result === "not found") return;
+  throw new Error(
+    typeof result?.result === "string"
+      ? `حذف از Cloudinary ناموفق بود: ${result.result}`
+      : "حذف از Cloudinary ناموفق بود",
+  );
 }

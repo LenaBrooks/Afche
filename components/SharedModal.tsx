@@ -38,7 +38,6 @@ export default function SharedModal({
     setImageReady(false);
   }, [index, currentImage?.public_id]);
 
-  // Prefetch neighbor lightbox images for snappy prev/next
   useEffect(() => {
     if (!images || !currentImage) return;
     const neighbors = [images[index - 1], images[index + 1]].filter(Boolean);
@@ -83,122 +82,118 @@ export default function SharedModal({
       }}
     >
       <div
-        className="relative z-50 flex aspect-[3/2] w-full max-w-7xl items-center wide:h-full xl:taller-than-854:h-auto"
+        className={`relative z-50 flex w-full max-w-7xl items-center justify-center ${
+          navigation ? "max-h-[min(85vh,900px)] pb-16" : "max-h-[90vh]"
+        }`}
         {...handlers}
       >
-        <div className="w-full overflow-hidden">
-          <div className="relative flex aspect-[3/2] items-center justify-center bg-black/20">
-            <AnimatePresence initial={false} custom={direction} mode="popLayout">
-              <motion.div
-                key={currentImage.public_id}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="absolute inset-0"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={mainSrc}
-                  alt="تصویر گالری"
-                  className={`h-full w-full object-cover transition-opacity duration-150 ${
-                    imageReady ? "opacity-100" : "opacity-0"
-                  }`}
-                  decoding="async"
-                  fetchPriority="high"
-                  onLoad={() => setImageReady(true)}
-                />
-              </motion.div>
-            </AnimatePresence>
-          </div>
+        <div className="relative flex max-h-[inherit] w-full items-center justify-center overflow-hidden">
+          <AnimatePresence initial={false} custom={direction} mode="popLayout">
+            <motion.div
+              key={currentImage.public_id}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="flex max-h-[inherit] w-full items-center justify-center"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={mainSrc}
+                alt="تصویر گالری"
+                className={`max-h-[min(85vh,900px)] max-w-full object-contain transition-opacity duration-150 ${
+                  navigation ? "pb-0" : ""
+                } ${imageReady ? "opacity-100" : "opacity-0"}`}
+                decoding="async"
+                fetchPriority="high"
+                onLoad={() => setImageReady(true)}
+              />
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        <div className="pointer-events-none absolute inset-0 z-[60] mx-auto flex max-w-7xl items-center justify-center">
-          <div className="pointer-events-none relative aspect-[3/2] max-h-full w-full">
-            {navigation && (
-              <>
-                {images && index + 1 < images.length && (
-                  <button
-                    type="button"
-                    aria-label="عکس بعدی"
-                    className="pointer-events-auto absolute left-3 top-1/2 z-[70] -translate-y-1/2 rounded-full bg-black/55 p-3 text-white/90 transition hover:bg-black/75"
-                    onClick={() => changePhotoId(index + 1)}
-                  >
-                    <ChevronLeftIcon className="h-6 w-6" />
-                  </button>
-                )}
-                {index > 0 && (
-                  <button
-                    type="button"
-                    aria-label="عکس قبلی"
-                    className="pointer-events-auto absolute right-3 top-1/2 z-[70] -translate-y-1/2 rounded-full bg-black/55 p-3 text-white/90 transition hover:bg-black/75"
-                    onClick={() => changePhotoId(index - 1)}
-                  >
-                    <ChevronRightIcon className="h-6 w-6" />
-                  </button>
-                )}
-              </>
-            )}
-
-            <div className="pointer-events-auto absolute top-0 right-0 z-[70] flex items-center gap-2 p-3 text-white">
-              {navigation ? (
-                <a
-                  href={fullSrc}
-                  className="rounded-full bg-black/55 p-2 text-white/90 transition hover:bg-black/75"
-                  target="_blank"
-                  title="باز کردن نسخه کامل"
-                  rel="noreferrer"
+        <div className="pointer-events-none absolute inset-0 z-[60]">
+          {navigation && (
+            <>
+              {images && index + 1 < images.length && (
+                <button
+                  type="button"
+                  aria-label="عکس بعدی"
+                  className="pointer-events-auto absolute left-3 top-1/2 z-[70] -translate-y-1/2 rounded-full bg-black/55 p-3 text-white/90 transition hover:bg-black/75"
+                  onClick={() => changePhotoId(index + 1)}
                 >
-                  <ArrowTopRightOnSquareIcon className="h-5 w-5" />
-                </a>
-              ) : (
-                <a
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`این عکس را ببینید: /p/${index}`)}`}
-                  className="rounded-full bg-black/55 p-2 text-white/90 transition hover:bg-black/75"
-                  target="_blank"
-                  title="اشتراک‌گذاری"
-                  rel="noreferrer"
-                >
-                  <Twitter className="h-5 w-5" />
-                </a>
+                  <ChevronLeftIcon className="h-6 w-6" />
+                </button>
               )}
-              <button
-                type="button"
-                onClick={() => downloadPhoto(fullSrc, `${index}.jpg`)}
-                className="rounded-full bg-black/55 p-2 text-white/90 transition hover:bg-black/75"
-                title="دانلود نسخه کامل"
-              >
-                <ArrowDownTrayIcon className="h-5 w-5" />
-              </button>
-            </div>
+              {index > 0 && (
+                <button
+                  type="button"
+                  aria-label="عکس قبلی"
+                  className="pointer-events-auto absolute right-3 top-1/2 z-[70] -translate-y-1/2 rounded-full bg-black/55 p-3 text-white/90 transition hover:bg-black/75"
+                  onClick={() => changePhotoId(index - 1)}
+                >
+                  <ChevronRightIcon className="h-6 w-6" />
+                </button>
+              )}
+            </>
+          )}
 
-            <div className="pointer-events-auto absolute top-0 left-0 z-[70] flex items-center gap-2 p-3 text-white">
-              <button
-                type="button"
-                onClick={() => closeModal()}
+          <div className="pointer-events-auto absolute top-0 right-0 z-[70] flex items-center gap-2 p-3 text-white">
+            {navigation ? (
+              <a
+                href={fullSrc}
                 className="rounded-full bg-black/55 p-2 text-white/90 transition hover:bg-black/75"
+                target="_blank"
+                title="باز کردن نسخه کامل"
+                rel="noreferrer"
               >
-                {navigation ? (
-                  <XMarkIcon className="h-5 w-5" />
-                ) : (
-                  <ArrowUturnLeftIcon className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-
-            {currentImage.created_at && (
-              <div
-                className={`pointer-events-none absolute inset-x-0 z-[70] flex justify-center px-4 ${
-                  navigation ? "bottom-[5.5rem]" : "bottom-3"
-                }`}
+                <ArrowTopRightOnSquareIcon className="h-5 w-5" />
+              </a>
+            ) : (
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`این عکس را ببینید: /p/${index}`)}`}
+                className="rounded-full bg-black/55 p-2 text-white/90 transition hover:bg-black/75"
+                target="_blank"
+                title="اشتراک‌گذاری"
+                rel="noreferrer"
               >
-                <p className="rounded-full bg-black/60 px-4 py-1.5 font-sans text-sm font-medium text-white/95">
-                  تاریخ انتشار: {formatJalaliDate(currentImage.created_at)}
-                </p>
-              </div>
+                <Twitter className="h-5 w-5" />
+              </a>
             )}
+            <button
+              type="button"
+              onClick={() => downloadPhoto(fullSrc, `${index}.jpg`)}
+              className="rounded-full bg-black/55 p-2 text-white/90 transition hover:bg-black/75"
+              title="دانلود نسخه کامل"
+            >
+              <ArrowDownTrayIcon className="h-5 w-5" />
+            </button>
           </div>
+
+          <div className="pointer-events-auto absolute top-0 left-0 z-[70] flex items-center gap-2 p-3 text-white">
+            <button
+              type="button"
+              onClick={() => closeModal()}
+              className="rounded-full bg-black/55 p-2 text-white/90 transition hover:bg-black/75"
+            >
+              {navigation ? (
+                <XMarkIcon className="h-5 w-5" />
+              ) : (
+                <ArrowUturnLeftIcon className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+
+          {currentImage.created_at && (
+            <p
+              className={`pointer-events-none absolute left-3 z-[70] fa-num text-[10px] text-white/60 ${
+                navigation ? "bottom-[4.75rem]" : "bottom-3"
+              }`}
+            >
+              {formatJalaliDate(currentImage.created_at)}
+            </p>
+          )}
         </div>
 
         {navigation && filteredImages && images && (

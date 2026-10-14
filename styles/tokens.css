@@ -1,0 +1,95 @@
+:root,
+html[data-theme="dark"] {
+  --af-bg: #050505;
+  --af-surface: #121212;
+  --af-surface-2: #1a1a1a;
+  --af-border: rgba(255, 255, 255, 0.12);
+  --af-border-strong: rgba(255, 255, 255, 0.22);
+  --af-text: #f5f5f5;
+  --af-muted: rgba(255, 255, 255, 0.55);
+  --af-accent: #e8c58c;
+  --af-accent-soft: rgba(232, 197, 140, 0.16);
+  --af-ok: #34d399;
+  --af-ok-soft: rgba(52, 211, 153, 0.15);
+  --af-danger: #f87171;
+  --af-danger-soft: rgba(248, 113, 113, 0.14);
+  --af-warn: #fbbf24;
+  --af-warn-soft: rgba(251, 191, 36, 0.16);
+  --af-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.65);
+  --af-shadow-sm: 0 8px 24px -12px rgba(0, 0, 0, 0.55);
+  --af-focus: 0 0 0 2px var(--af-bg), 0 0 0 4px rgba(232, 197, 140, 0.55);
+  --af-glow-a: rgba(232, 197, 140, 0.14);
+  --af-glow-b: rgba(120, 160, 180, 0.09);
+  --af-glow-c: rgba(255, 255, 255, 0.04);
+  --af-input-bg: rgba(255, 255, 255, 0.04);
+  --af-chip: rgba(255, 255, 255, 0.1);
+  --af-hover: rgba(255, 255, 255, 0.08);
+  --af-hover-strong: rgba(255, 255, 255, 0.14);
+  --af-inverse: #050505;
+  --af-inverse-text: #f5f5f5;
+  --af-ctl-bg: rgba(0, 0, 0, 0.22);
+  --af-ctl-fg: rgba(255, 255, 255, 0.72);
+  --af-ctl-active-bg: #ffffff;
+  --af-ctl-active-fg: #050505;
+  --af-card-ring: rgba(255, 255, 255, 0.1);
+  --af-card-bg: rgba(255, 255, 255, 0.04);
+  --af-hairline: rgba(255, 255, 255, 0.06);
+  --af-radius-sm: 0.5rem;
+  --af-radius-md: 0.75rem;
+  --af-radius-lg: 1rem;
+  --af-space-1: 0.25rem;
+  --af-space-2: 0.5rem;
+  --af-space-3: 0.75rem;
+  --af-space-4: 1rem;
+  --af-space-5: 1.25rem;
+  --af-space-6: 1.5rem;
+  --af-space-8: 2rem;
+}
+
+/**
+ * Day theme — luminous gallery daylight.
+ * Cool mist ground + white glass surfaces + ink text + champagne gold.
+ * Avoids cream/terracotta and purple defaults.
+ */
+html[data-theme="light"] {
+  --af-bg: #f3f5f8;
+  --af-surface: #ffffff;
+  --af-surface-2: #e9edf3;
+  --af-border: rgba(15, 23, 42, 0.1);
+  --af-border-strong: rgba(15, 23, 42, 0.18);
+  --af-text: #0f172a;
+  --af-muted: rgba(15, 23, 42, 0.58);
+  --af-accent: #9a7420;
+  --af-accent-soft: rgba(154, 116, 32, 0.12);
+  --af-ok: #047857;
+  --af-ok-soft: rgba(4, 120, 87, 0.12);
+  --af-danger: #b91c1c;
+  --af-danger-soft: rgba(185, 28, 28, 0.1);
+  --af-warn: #b45309;
+  --af-warn-soft: rgba(180, 83, 9, 0.12);
+  --af-shadow: 0 22px 50px -28px rgba(15, 23, 42, 0.28),
+    0 8px 18px -12px rgba(15, 23, 42, 0.12);
+  --af-shadow-sm: 0 10px 24px -16px rgba(15, 23, 42, 0.2);
+  --af-focus: 0 0 0 2px var(--af-bg), 0 0 0 4px rgba(154, 116, 32, 0.4);
+  --af-glow-a: rgba(212, 175, 82, 0.18);
+  --af-glow-b: rgba(100, 140, 180, 0.12);
+  --af-glow-c: rgba(15, 23, 42, 0.04);
+  --af-input-bg: #f7f9fc;
+  --af-chip: rgba(15, 23, 42, 0.06);
+  --af-hover: rgba(15, 23, 42, 0.05);
+  --af-hover-strong: rgba(15, 23, 42, 0.09);
+  --af-inverse: #0f172a;
+  --af-inverse-text: #ffffff;
+  --af-ctl-bg: rgba(15, 23, 42, 0.05);
+  --af-ctl-fg: rgba(15, 23, 42, 0.62);
+  --af-ctl-active-bg: #0f172a;
+  --af-ctl-active-fg: #ffffff;
+  --af-card-ring: rgba(15, 23, 42, 0.08);
+  --af-card-bg: #ffffff;
+  --af-hairline: rgba(15, 23, 42, 0.06);
+}
+
+.af-focusable:focus-visible {
+  outline: none;
+  box-shadow: var(--af-focus);
+}

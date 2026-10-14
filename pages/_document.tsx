@@ -1,10 +1,13 @@
 import Document, { Head, Html, Main, NextScript } from "next/document";
 
+const themeBootScript = `(function(){try{var t=localStorage.getItem("af-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}else{document.documentElement.setAttribute("data-theme","dark");}}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();`;
+
 class MyDocument extends Document {
   render() {
     return (
-      <Html lang="fa" dir="rtl">
+      <Html lang="fa" dir="rtl" data-theme="dark">
         <Head>
+          <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
           <link rel="icon" href="/favicon.ico" />
           <link
             rel="preload"
@@ -37,7 +40,7 @@ class MyDocument extends Document {
             content="گالری عکس — آپلود، مدیریت و نمایش تصاویر"
           />
         </Head>
-        <body className="bg-black font-sans antialiased">
+        <body className="bg-[var(--af-bg)] font-sans text-[var(--af-text)] antialiased">
           <Main />
           <NextScript />
         </body>

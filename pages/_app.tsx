@@ -1,7 +1,21 @@
 import type { AppProps } from "next/app";
+import ThemeSync from "../components/ThemeSync";
+import { ToastProvider } from "../components/ui/Toast";
+import type { SiteTheme } from "../utils/siteSettingsShared";
 import "../styles/index.css";
 
-export default function MyApp({ Component, pageProps }: AppProps) {
-  // No page-level wait animation — route changes must feel instant.
-  return <Component {...pageProps} />;
+type PageProps = {
+  settings?: { theme?: SiteTheme };
+  theme?: SiteTheme;
+};
+
+export default function MyApp({ Component, pageProps }: AppProps<PageProps>) {
+  const theme = pageProps.theme || pageProps.settings?.theme;
+
+  return (
+    <ToastProvider>
+      <ThemeSync theme={theme} />
+      <Component {...pageProps} />
+    </ToastProvider>
+  );
 }
