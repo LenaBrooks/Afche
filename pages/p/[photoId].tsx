@@ -19,7 +19,11 @@ const Home: NextPage = ({ currentPhoto }: { currentPhoto: ImageProps }) => {
     );
   }
 
-  const currentPhotoUrl = cardUrl(currentPhoto.public_id, currentPhoto.format);
+  const currentPhotoUrl = cardUrl(
+    currentPhoto.public_id,
+    currentPhoto.format,
+    currentPhoto.version,
+  );
 
   return (
     <>

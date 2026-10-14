@@ -91,7 +91,7 @@ const EMPTY_COPY: Record<Tab, { title: string; description: string }> = {
 };
 
 function fullUrl(photo: AdminPhoto) {
-  return lightboxUrl(photo.public_id, photo.format);
+  return lightboxUrl(photo.public_id, photo.format, false, photo.version);
 }
 
 function relatedTabs(fromTab: Tab, action: string): Tab[] {

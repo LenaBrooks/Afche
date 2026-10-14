@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { useState } from "react";
-import { cardUrl } from "../utils/cloudinaryUrl";
+import { cardSrcSet, cardUrl } from "../utils/cloudinaryUrl";
 import { toFaDigits } from "../utils/fa";
 
 type Props = {
   id: number;
   publicId: string;
   format: string;
+  version?: number;
+  sizes?: string;
   priority?: boolean;
   lastViewedRef?: React.Ref<HTMLAnchorElement> | null;
 };
@@ -15,6 +17,8 @@ export default function GalleryCard({
   id,
   publicId,
   format,
+  version,
+  sizes = "(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw",
   priority,
   lastViewedRef,
 }: Props) {
@@ -40,7 +44,9 @@ export default function GalleryCard({
         className={`absolute inset-0 h-full w-full object-cover brightness-[0.88] transition duration-500 will-change-transform group-hover:scale-105 group-hover:brightness-110 ${
           loaded ? "opacity-100" : "opacity-0"
         }`}
-        src={cardUrl(publicId, format)}
+        src={cardUrl(publicId, format, version)}
+        srcSet={cardSrcSet(publicId, format, version)}
+        sizes={sizes}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
         fetchPriority={priority ? "high" : "auto"}

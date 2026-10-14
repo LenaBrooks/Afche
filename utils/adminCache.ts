@@ -1,6 +1,7 @@
 export type AdminPhoto = {
   public_id: string;
   format: string;
+  version?: number;
   width: number;
   height: number;
   tags: string[];

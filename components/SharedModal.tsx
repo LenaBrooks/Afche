@@ -43,7 +43,12 @@ export default function SharedModal({
     const neighbors = [images[index - 1], images[index + 1]].filter(Boolean);
     neighbors.forEach((img) => {
       const el = new window.Image();
-      el.src = lightboxUrl(img.public_id, img.format, !navigation);
+      el.src = lightboxUrl(
+        img.public_id,
+        img.format,
+        !navigation,
+        img.version,
+      );
     });
   }, [images, index, navigation, currentImage]);
 
@@ -71,8 +76,13 @@ export default function SharedModal({
     currentImage.public_id,
     currentImage.format,
     !navigation,
+    currentImage.version,
   );
-  const fullSrc = originalUrl(currentImage.public_id, currentImage.format);
+  const fullSrc = originalUrl(
+    currentImage.public_id,
+    currentImage.format,
+    currentImage.version,
+  );
 
   return (
     <MotionConfig
@@ -199,7 +209,7 @@ export default function SharedModal({
         {navigation && filteredImages && images && (
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-gradient-to-b from-black/0 to-black/70">
             <div className="pointer-events-auto mx-auto flex max-w-3xl gap-1.5 overflow-x-auto px-4 py-4 scrollbar-none">
-              {filteredImages.map(({ public_id, format, id }) => (
+              {filteredImages.map(({ public_id, format, version, id }) => (
                 <button
                   type="button"
                   key={id}
@@ -216,7 +226,7 @@ export default function SharedModal({
                     width={72}
                     height={48}
                     className="h-full w-full object-cover"
-                    src={filmstripUrl(public_id, format)}
+                    src={filmstripUrl(public_id, format, version)}
                     loading="lazy"
                     decoding="async"
                   />

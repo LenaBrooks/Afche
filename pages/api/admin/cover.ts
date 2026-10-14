@@ -90,6 +90,7 @@ export default async function handler(
       photo: {
         public_id: result.public_id,
         format: result.format,
+        version: result.version,
         width: result.width,
         height: result.height,
         tags: ["approved"],
@@ -98,7 +99,7 @@ export default async function handler(
         approved_at: approvedAt,
         bytes: result.bytes ?? 0,
         filename: photoDisplayName(result.public_id, original),
-        url: thumbUrl(result.public_id, result.format),
+        url: thumbUrl(result.public_id, result.format, result.version),
       },
     });
   } catch (error: any) {

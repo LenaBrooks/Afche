@@ -5,6 +5,8 @@ export interface ImageProps {
   width: number;
   public_id: string;
   format: string;
+  /** Cloudinary asset version — enables immutable CDN URLs. */
+  version?: number;
   blurDataUrl?: string;
   /** Upload or publish time (ISO). Prefer approved_at when present. */
   created_at?: string | null;

@@ -24,6 +24,7 @@ export default async function handler(
         theme: settings.theme,
         coverPublicId: settings.coverPublicId,
         coverFormat: settings.coverFormat,
+        coverVersion: settings.coverVersion,
       },
     });
   } catch (error: any) {

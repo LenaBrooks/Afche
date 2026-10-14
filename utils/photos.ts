@@ -13,6 +13,7 @@ export type PhotoStatus = "pending" | "approved" | "hidden" | "rejected" | "all"
 export type CloudinaryResource = {
   public_id: string;
   format: string;
+  version?: number;
   height: number;
   width: number;
   bytes?: number;
@@ -112,6 +113,7 @@ export async function getPublicGalleryImages(): Promise<ImageProps[]> {
       width: result.width,
       public_id: result.public_id,
       format: result.format,
+      version: result.version,
       blurDataUrl: BLUR_PLACEHOLDER,
       created_at: ctx.approved_at || result.created_at || null,
       bytes: result.bytes ?? null,
@@ -133,6 +135,7 @@ export function resourceToAdminPhoto(resource: CloudinaryResource) {
   return {
     public_id: resource.public_id,
     format: resource.format,
+    version: resource.version,
     width: resource.width,
     height: resource.height,
     tags,
@@ -141,7 +144,7 @@ export function resourceToAdminPhoto(resource: CloudinaryResource) {
     approved_at: ctx.approved_at,
     bytes: resource.bytes ?? 0,
     filename: photoDisplayName(resource.public_id, ctx.original_filename),
-    url: thumbUrl(resource.public_id, resource.format),
+    url: thumbUrl(resource.public_id, resource.format, resource.version),
   };
 }
 

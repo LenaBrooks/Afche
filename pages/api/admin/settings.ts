@@ -40,6 +40,13 @@ function parseBody(body: unknown): Partial<SiteSettings> {
         ? raw.coverFormat.trim()
         : null;
   }
+  if ("coverVersion" in raw) {
+    const v = raw.coverVersion;
+    if (typeof v === "number" && Number.isFinite(v)) patch.coverVersion = v;
+    else if (typeof v === "string" && v.trim() && Number.isFinite(Number(v))) {
+      patch.coverVersion = Number(v);
+    } else patch.coverVersion = null;
+  }
 
   return patch;
 }

@@ -34,6 +34,7 @@ const AdminSettings: NextPage = () => {
   const [theme, setTheme] = useState<SiteTheme>(DEFAULT_SITE_SETTINGS.theme);
   const [coverPublicId, setCoverPublicId] = useState<string | null>(null);
   const [coverFormat, setCoverFormat] = useState<string | null>(null);
+  const [coverVersion, setCoverVersion] = useState<number | null>(null);
   const [photos, setPhotos] = useState<AdminPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,7 @@ const AdminSettings: NextPage = () => {
         setTheme(loaded.theme);
         setCoverPublicId(loaded.coverPublicId);
         setCoverFormat(loaded.coverFormat);
+        setCoverVersion(loaded.coverVersion ?? null);
         setSavedSnapshot(loaded);
         setPhotos(photosJson.photos || []);
         applySiteTheme(loaded.theme);
@@ -90,11 +92,13 @@ const AdminSettings: NextPage = () => {
   function selectCover(photo: AdminPhoto) {
     setCoverPublicId(photo.public_id);
     setCoverFormat(photo.format);
+    setCoverVersion(photo.version ?? null);
   }
 
   function clearCover() {
     setCoverPublicId(null);
     setCoverFormat(null);
+    setCoverVersion(null);
   }
 
   async function uploadCover(file: File) {
@@ -111,6 +115,7 @@ const AdminSettings: NextPage = () => {
       const photo = data.photo as AdminPhoto;
       setCoverPublicId(photo.public_id);
       setCoverFormat(photo.format);
+      setCoverVersion(photo.version ?? null);
       setPhotos((prev) => [
         photo,
         ...prev.filter((p) => p.public_id !== photo.public_id),
@@ -137,6 +142,7 @@ const AdminSettings: NextPage = () => {
           theme,
           coverPublicId,
           coverFormat,
+          coverVersion,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -147,6 +153,7 @@ const AdminSettings: NextPage = () => {
       setTheme(settings.theme);
       setCoverPublicId(settings.coverPublicId);
       setCoverFormat(settings.coverFormat);
+      setCoverVersion(settings.coverVersion ?? null);
       setSavedSnapshot(settings);
       applySiteTheme(settings.theme);
       void notifyGalleryUpdated();
@@ -165,12 +172,15 @@ const AdminSettings: NextPage = () => {
     setTheme(savedSnapshot.theme);
     setCoverPublicId(savedSnapshot.coverPublicId);
     setCoverFormat(savedSnapshot.coverFormat);
+    setCoverVersion(savedSnapshot.coverVersion ?? null);
     applySiteTheme(savedSnapshot.theme);
     toast.push("تغییرات لغو شد");
   }
 
   const coverPreview =
-    coverPublicId && coverFormat ? heroUrl(coverPublicId, coverFormat) : null;
+    coverPublicId && coverFormat
+      ? heroUrl(coverPublicId, coverFormat, coverVersion)
+      : null;
 
   return (
     <>
@@ -332,7 +342,11 @@ const AdminSettings: NextPage = () => {
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={thumbUrl(photo.public_id, photo.format)}
+                          src={thumbUrl(
+                            photo.public_id,
+                            photo.format,
+                            photo.version,
+                          )}
                           alt=""
                           className="h-full w-full object-cover"
                           loading="lazy"

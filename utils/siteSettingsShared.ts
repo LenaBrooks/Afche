@@ -8,6 +8,8 @@ export type SiteSettings = {
   theme: SiteTheme;
   coverPublicId: string | null;
   coverFormat: string | null;
+  /** Cloudinary version of the cover asset for cache-busted delivery. */
+  coverVersion: number | null;
 };
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -17,6 +19,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   theme: "dark",
   coverPublicId: null,
   coverFormat: null,
+  coverVersion: null,
 };
 
 export const THEME_STORAGE_KEY = "af-theme";
@@ -55,6 +58,15 @@ export function normalizeSiteSettings(
     typeof raw?.coverFormat === "string" && raw.coverFormat.trim()
       ? raw.coverFormat.trim()
       : null;
+  const coverVersionRaw = raw?.coverVersion as unknown;
+  const coverVersion =
+    typeof coverVersionRaw === "number" && Number.isFinite(coverVersionRaw)
+      ? coverVersionRaw
+      : typeof coverVersionRaw === "string" &&
+          coverVersionRaw.trim() &&
+          Number.isFinite(Number(coverVersionRaw))
+        ? Number(coverVersionRaw)
+        : null;
 
   return {
     title,
@@ -62,5 +74,6 @@ export function normalizeSiteSettings(
     theme,
     coverPublicId,
     coverFormat: coverPublicId ? coverFormat || "jpg" : null,
+    coverVersion: coverPublicId ? coverVersion : null,
   };
 }

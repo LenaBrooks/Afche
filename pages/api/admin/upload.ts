@@ -70,6 +70,7 @@ async function uploadOne(file: File): Promise<AdminPhoto> {
   return {
     public_id: result.public_id,
     format: result.format,
+    version: result.version,
     width: result.width,
     height: result.height,
     tags: ["approved"],
@@ -78,7 +79,7 @@ async function uploadOne(file: File): Promise<AdminPhoto> {
     approved_at: approvedAt,
     bytes: result.bytes ?? 0,
     filename: photoDisplayName(result.public_id, original),
-    url: thumbUrl(result.public_id, result.format),
+    url: thumbUrl(result.public_id, result.format, result.version),
   };
 }
 

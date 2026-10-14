@@ -24,6 +24,24 @@ function settingsPublicId() {
   return `${folder}/_site_settings`;
 }
 
+/** Backfill coverVersion for legacy settings that only stored public_id. */
+async function withCoverVersion(settings: SiteSettings): Promise<SiteSettings> {
+  if (!settings.coverPublicId || settings.coverVersion != null) return settings;
+  try {
+    const cover = await cloudinary.api.resource(settings.coverPublicId, {
+      resource_type: "image",
+    });
+    const version =
+      typeof cover.version === "number"
+        ? cover.version
+        : Number(cover.version) || null;
+    if (version == null) return settings;
+    return { ...settings, coverVersion: version };
+  } catch {
+    return settings;
+  }
+}
+
 export async function getSiteSettings(): Promise<SiteSettings> {
   const cached = getCachedList<SiteSettings>(CACHE_KEY);
   if (cached) return cached;
@@ -40,7 +58,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`settings fetch ${res.status}`);
     const data = (await res.json()) as Partial<SiteSettings>;
-    const settings = normalizeSiteSettings(data);
+    const settings = await withCoverVersion(normalizeSiteSettings(data));
     setCachedList(CACHE_KEY, settings, 60_000);
     return settings;
   } catch {

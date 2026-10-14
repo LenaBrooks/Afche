@@ -251,11 +251,19 @@ const Home: NextPage = ({
           <>
             <meta
               property="og:image"
-              content={heroUrl(settings.coverPublicId, settings.coverFormat)}
+              content={heroUrl(
+                settings.coverPublicId,
+                settings.coverFormat,
+                settings.coverVersion,
+              )}
             />
             <meta
               name="twitter:image"
-              content={heroUrl(settings.coverPublicId, settings.coverFormat)}
+              content={heroUrl(
+                settings.coverPublicId,
+                settings.coverFormat,
+                settings.coverVersion,
+              )}
             />
           </>
         )}
@@ -289,9 +297,15 @@ const Home: NextPage = ({
             <div className="absolute inset-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={heroUrl(settings.coverPublicId, settings.coverFormat)}
+                src={heroUrl(
+                  settings.coverPublicId,
+                  settings.coverFormat,
+                  settings.coverVersion,
+                )}
                 alt=""
                 className="h-full w-full object-cover"
+                loading="eager"
+                decoding="async"
                 fetchPriority="high"
               />
               <span className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/55 to-black/90" />
@@ -341,19 +355,9 @@ const Home: NextPage = ({
                 whileHover={reduceMotion ? undefined : { scale: 1.04, y: -2 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.97 }}
                 transition={snappySpring}
-                className="rounded-xl border border-white bg-white px-4 py-2.5 text-sm font-semibold text-black shadow-[0_0_40px_-12px_rgba(232,197,140,0.55)]"
-              >
-                آپلود عکس
-              </MotionLink>
-              <MotionLink
-                href="/admin/login"
-                prefetch
-                whileHover={reduceMotion ? undefined : { scale: 1.04, y: -2 }}
-                whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-                transition={snappySpring}
                 className="rounded-xl border border-white/35 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white"
               >
-                ورود مدیر
+                آپلود عکس
               </MotionLink>
             </motion.div>
           </motion.div>
@@ -370,12 +374,12 @@ const Home: NextPage = ({
         ) : (
           <>
             <motion.div
-              className="mb-4 space-y-3"
+              className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, ...softSpring }}
             >
-              <p className="fa-num flex items-center gap-2 text-sm text-[var(--af-muted)]">
+              <p className="fa-num flex min-w-0 items-center gap-2 text-sm text-[var(--af-muted)]">
                 <span>{toFaDigits(images.length)} عکس</span>
                 {galleryRefreshing && (
                   <span
@@ -388,8 +392,8 @@ const Home: NextPage = ({
                 )}
               </p>
 
-              <div className="flex items-stretch justify-between gap-3">
-                <div className="relative min-w-0 flex-1" ref={sortRef}>
+              <div className="flex shrink-0 items-center gap-2">
+                <div className="relative" ref={sortRef}>
                   <button
                     type="button"
                     aria-haspopup="listbox"
@@ -399,9 +403,9 @@ const Home: NextPage = ({
                       setSortOpen((o) => !o);
                       setDensityOpen(false);
                     }}
-                    className="af-focusable flex h-11 w-full items-center justify-between gap-2 rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] px-3 text-sm shadow-[var(--af-shadow-sm)]"
+                    className="af-focusable flex h-9 items-center gap-1.5 rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] px-2.5 text-sm shadow-[var(--af-shadow-sm)] sm:h-10 sm:px-3"
                   >
-                    <span className="truncate text-[var(--af-text)]">
+                    <span className="whitespace-nowrap text-[var(--af-text)]">
                       {SORT_MODES.find((m) => m.id === sort)?.label}
                     </span>
                     <ChevronDownIcon
@@ -413,7 +417,7 @@ const Home: NextPage = ({
                   {sortOpen && (
                     <ul
                       role="listbox"
-                      className="absolute top-[calc(100%+6px)] right-0 left-0 z-40 overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] py-1 shadow-[var(--af-shadow)]"
+                      className="absolute top-[calc(100%+6px)] end-0 z-40 min-w-[9.5rem] overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] py-1 shadow-[var(--af-shadow)]"
                     >
                       {SORT_MODES.map((opt) => {
                         const active = opt.id === sort;
@@ -445,7 +449,7 @@ const Home: NextPage = ({
                   )}
                 </div>
 
-                <div className="relative min-w-0 flex-1" ref={densityRef}>
+                <div className="relative" ref={densityRef}>
                   <button
                     type="button"
                     aria-haspopup="listbox"
@@ -455,9 +459,9 @@ const Home: NextPage = ({
                       setDensityOpen((o) => !o);
                       setSortOpen(false);
                     }}
-                    className="af-focusable flex h-11 w-full items-center justify-between gap-2 rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] px-3 text-sm shadow-[var(--af-shadow-sm)]"
+                    className="af-focusable flex h-9 items-center gap-1.5 rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] px-2.5 text-sm shadow-[var(--af-shadow-sm)] sm:h-10 sm:px-3"
                   >
-                    <span className="truncate text-[var(--af-text)]">
+                    <span className="whitespace-nowrap text-[var(--af-text)]">
                       {VIEW_MODES.find((m) => m.id === density)?.label}
                     </span>
                     <ChevronDownIcon
@@ -469,7 +473,7 @@ const Home: NextPage = ({
                   {densityOpen && (
                     <ul
                       role="listbox"
-                      className="absolute top-[calc(100%+6px)] right-0 left-0 z-40 overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] py-1 shadow-[var(--af-shadow)]"
+                      className="absolute top-[calc(100%+6px)] end-0 z-40 min-w-[9.5rem] overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-surface)] py-1 shadow-[var(--af-shadow)]"
                     >
                       {VIEW_MODES.map((opt) => {
                         const active = opt.id === density;
@@ -511,31 +515,35 @@ const Home: NextPage = ({
                 initial={reduceMotion ? false : "hidden"}
                 animate="show"
               >
-                {sortedImages.map(({ id, public_id, format }, index) => (
-                  <motion.div
-                    key={`${public_id}-${id}`}
-                    variants={galleryItem}
-                    layout
-                    whileHover={
-                      reduceMotion
-                        ? undefined
-                        : { y: -6, scale: 1.02, transition: snappySpring }
-                    }
-                    whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-                  >
-                    <GalleryCard
-                      id={id}
-                      publicId={public_id}
-                      format={format}
-                      priority={index < 4}
-                      lastViewedRef={
-                        id === Number(lastViewedPhoto)
-                          ? lastViewedPhotoRef
-                          : null
+                {sortedImages.map(
+                  ({ id, public_id, format, version }, index) => (
+                    <motion.div
+                      key={`${public_id}-${id}`}
+                      variants={galleryItem}
+                      layout
+                      whileHover={
+                        reduceMotion
+                          ? undefined
+                          : { y: -6, scale: 1.02, transition: snappySpring }
                       }
-                    />
-                  </motion.div>
-                ))}
+                      whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                    >
+                      <GalleryCard
+                        id={id}
+                        publicId={public_id}
+                        format={format}
+                        version={version}
+                        sizes={mode.sizes}
+                        priority={index < 4}
+                        lastViewedRef={
+                          id === Number(lastViewedPhoto)
+                            ? lastViewedPhotoRef
+                            : null
+                        }
+                      />
+                    </motion.div>
+                  ),
+                )}
               </motion.div>
             </LayoutGroup>
           </>
