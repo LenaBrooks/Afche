@@ -1,6 +1,6 @@
 import Document, { Head, Html, Main, NextScript } from "next/document";
 
-const themeBootScript = `(function(){try{var t=localStorage.getItem("af-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}else{document.documentElement.setAttribute("data-theme","dark");}}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();`;
+const themeBootScript = `(function(){try{var p=location.pathname||"";if(p.indexOf("/admin")===0){var t=localStorage.getItem("af-admin-theme")||localStorage.getItem("af-theme");document.documentElement.setAttribute("data-theme",t==="light"||t==="dark"?t:"dark");}else{document.documentElement.setAttribute("data-theme","dark");}}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();`;
 
 class MyDocument extends Document {
   render() {

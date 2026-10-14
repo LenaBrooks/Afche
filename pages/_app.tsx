@@ -1,23 +1,28 @@
 import type { AppProps } from "next/app";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 import ThemeSync from "../components/ThemeSync";
 import UploadFloatingBar from "../components/UploadFloatingBar";
 import { UploadQueueProvider } from "../components/UploadQueueProvider";
 import { ToastProvider } from "../components/ui/Toast";
-import type { SiteTheme } from "../utils/siteSettingsShared";
+import { ADMIN_PREFETCH_ROUTES } from "../utils/adminSession";
 import "../styles/index.css";
 
-type PageProps = {
-  settings?: { theme?: SiteTheme };
-  theme?: SiteTheme;
-};
+export default function MyApp({ Component, pageProps }: AppProps) {
+  const router = useRouter();
 
-export default function MyApp({ Component, pageProps }: AppProps<PageProps>) {
-  const theme = pageProps.theme || pageProps.settings?.theme;
+  // Warm admin chunks as soon as user is anywhere under /admin.
+  useEffect(() => {
+    if (!router.pathname.startsWith("/admin")) return;
+    for (const href of ADMIN_PREFETCH_ROUTES) {
+      void router.prefetch(href);
+    }
+  }, [router, router.pathname]);
 
   return (
     <ToastProvider>
       <UploadQueueProvider>
-        <ThemeSync theme={theme} />
+        <ThemeSync />
         <Component {...pageProps} />
         <UploadFloatingBar />
       </UploadQueueProvider>

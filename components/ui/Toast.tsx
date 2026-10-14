@@ -25,10 +25,10 @@ type ToastApi = {
 const ToastContext = createContext<ToastApi | null>(null);
 
 const kindClass: Record<ToastKind, string> = {
-  ok: "border-[var(--af-ok)]/25 bg-[var(--af-ok-soft)] text-[var(--af-ok)]",
+  ok: "bg-[var(--af-ok-soft)] text-[var(--af-ok)] shadow-[0_0_24px_-6px_rgba(52,211,153,0.45)]",
   error:
-    "border-[var(--af-danger)]/25 bg-[var(--af-danger-soft)] text-[var(--af-danger)]",
-  info: "border-[var(--af-border)] bg-[var(--af-surface)] text-[var(--af-text)] shadow-[var(--af-shadow-sm)]",
+    "bg-[var(--af-danger-soft)] text-[var(--af-danger)] shadow-[0_0_24px_-6px_rgba(248,113,113,0.4)]",
+  info: "bg-[var(--af-surface-2)] text-[var(--af-text)] shadow-[var(--af-shadow)]",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -63,7 +63,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
-              className={`fa-num pointer-events-auto max-w-md rounded-[var(--af-radius-md)] border px-4 py-2.5 text-sm shadow-[var(--af-shadow)] ${kindClass[t.kind]}`}
+              className={`fa-num pointer-events-auto max-w-md rounded-[var(--af-radius-md)] px-4 py-2.5 text-sm backdrop-blur-sm ${kindClass[t.kind]}`}
             >
               {t.message}
             </motion.div>

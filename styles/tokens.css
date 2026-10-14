@@ -29,8 +29,13 @@ html[data-theme="dark"] {
   --af-inverse-text: #f5f5f5;
   --af-ctl-bg: rgba(0, 0, 0, 0.22);
   --af-ctl-fg: rgba(255, 255, 255, 0.72);
-  --af-ctl-active-bg: #ffffff;
-  --af-ctl-active-fg: #050505;
+  --af-ctl-active-bg: rgba(232, 197, 140, 0.16);
+  --af-ctl-active-fg: #f6e7c8;
+  --af-ctl-active-ring: rgba(232, 197, 140, 0.65);
+  --af-ctl-active-glow: 0 0 22px -2px rgba(232, 197, 140, 0.55),
+    inset 0 0 0 1px rgba(232, 197, 140, 0.45);
+  --af-select-glow: 0 0 28px -4px rgba(232, 197, 140, 0.65),
+    0 0 0 1px rgba(232, 197, 140, 0.7);
   --af-card-ring: rgba(255, 255, 255, 0.1);
   --af-card-bg: rgba(255, 255, 255, 0.04);
   --af-hairline: rgba(255, 255, 255, 0.06);
@@ -82,8 +87,13 @@ html[data-theme="light"] {
   --af-inverse-text: #ffffff;
   --af-ctl-bg: rgba(15, 23, 42, 0.05);
   --af-ctl-fg: rgba(15, 23, 42, 0.62);
-  --af-ctl-active-bg: #0f172a;
-  --af-ctl-active-fg: #ffffff;
+  --af-ctl-active-bg: rgba(154, 116, 32, 0.14);
+  --af-ctl-active-fg: #7a5a12;
+  --af-ctl-active-ring: rgba(154, 116, 32, 0.55);
+  --af-ctl-active-glow: 0 0 18px -2px rgba(212, 175, 82, 0.45),
+    inset 0 0 0 1px rgba(154, 116, 32, 0.4);
+  --af-select-glow: 0 0 24px -4px rgba(212, 175, 82, 0.55),
+    0 0 0 1px rgba(154, 116, 32, 0.65);
   --af-card-ring: rgba(15, 23, 42, 0.08);
   --af-card-bg: #ffffff;
   --af-hairline: rgba(15, 23, 42, 0.06);

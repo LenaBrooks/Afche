@@ -1,4 +1,4 @@
-import type { GetServerSideProps, NextPage } from "next";
+import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -6,7 +6,10 @@ import { motion, useReducedMotion } from "framer-motion";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Button from "../../components/ui/Button";
 import { useToast } from "../../components/ui/Toast";
-import { isAuthenticated } from "../../utils/auth";
+import {
+  ensureAdminSession,
+  markAdminAuthed,
+} from "../../utils/adminSession";
 
 const AdminLogin: NextPage = () => {
   const router = useRouter();
@@ -21,7 +24,11 @@ const AdminLogin: NextPage = () => {
 
   useEffect(() => {
     userRef.current?.focus();
-  }, []);
+    void router.prefetch("/admin");
+    void ensureAdminSession().then((ok) => {
+      if (ok) void router.replace("/admin");
+    });
+  }, [router]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -44,8 +51,9 @@ const AdminLogin: NextPage = () => {
         toast.error(msg);
         return;
       }
+      markAdminAuthed();
       toast.success("ورود موفق");
-      router.push("/admin");
+      await router.replace("/admin");
     } catch {
       const msg = "خطای شبکه. دوباره تلاش کنید.";
       setError(msg);
@@ -128,12 +136,3 @@ const AdminLogin: NextPage = () => {
 };
 
 export default AdminLogin;
-
-export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  if (isAuthenticated(req)) {
-    return {
-      redirect: { destination: "/admin", permanent: false },
-    };
-  }
-  return { props: {} };
-};

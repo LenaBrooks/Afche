@@ -1,13 +1,13 @@
-import type { GetServerSideProps, NextPage } from "next";
+import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { ArrowUpTrayIcon, CheckIcon } from "@heroicons/react/24/solid";
 import { useEffect, useRef, useState } from "react";
+import AdminGate from "../../components/AdminGate";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/ui/PageHeader";
-import SegmentedControl from "../../components/ui/SegmentedControl";
 import { useToast } from "../../components/ui/Toast";
-import { isAuthenticated } from "../../utils/auth";
 import {
   invalidateAdminCache,
   type AdminPhoto,
@@ -15,23 +15,16 @@ import {
 import { heroUrl, thumbUrl } from "../../utils/cloudinaryUrl";
 import { notifyGalleryUpdated } from "../../utils/gallerySync";
 import {
-  applySiteTheme,
   DEFAULT_SITE_SETTINGS,
   type SiteSettings,
-  type SiteTheme,
 } from "../../utils/siteSettingsShared";
 
-const THEME_OPTIONS: { id: SiteTheme; label: string }[] = [
-  { id: "dark", label: "تیره" },
-  { id: "light", label: "روشن" },
-];
-
 const AdminSettings: NextPage = () => {
+  const router = useRouter();
   const toast = useToast();
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(DEFAULT_SITE_SETTINGS.title);
   const [subtitle, setSubtitle] = useState(DEFAULT_SITE_SETTINGS.subtitle);
-  const [theme, setTheme] = useState<SiteTheme>(DEFAULT_SITE_SETTINGS.theme);
   const [coverPublicId, setCoverPublicId] = useState<string | null>(null);
   const [coverFormat, setCoverFormat] = useState<string | null>(null);
   const [coverVersion, setCoverVersion] = useState<number | null>(null);
@@ -62,19 +55,14 @@ const AdminSettings: NextPage = () => {
         };
         const photosJson = (await photosRes.json()) as { photos: AdminPhoto[] };
         if (cancelled) return;
-        const loaded = {
-          ...settingsJson.settings,
-          theme: settingsJson.settings.theme || DEFAULT_SITE_SETTINGS.theme,
-        };
+        const loaded = settingsJson.settings;
         setTitle(loaded.title);
         setSubtitle(loaded.subtitle);
-        setTheme(loaded.theme);
         setCoverPublicId(loaded.coverPublicId);
         setCoverFormat(loaded.coverFormat);
         setCoverVersion(loaded.coverVersion ?? null);
         setSavedSnapshot(loaded);
         setPhotos(photosJson.photos || []);
-        applySiteTheme(loaded.theme);
       } catch (error: any) {
         if (!cancelled) {
           toast.error(error?.message || "بارگذاری ناموفق بود");
@@ -139,7 +127,6 @@ const AdminSettings: NextPage = () => {
         body: JSON.stringify({
           title,
           subtitle,
-          theme,
           coverPublicId,
           coverFormat,
           coverVersion,
@@ -150,14 +137,13 @@ const AdminSettings: NextPage = () => {
       const settings = data.settings as SiteSettings;
       setTitle(settings.title);
       setSubtitle(settings.subtitle);
-      setTheme(settings.theme);
       setCoverPublicId(settings.coverPublicId);
       setCoverFormat(settings.coverFormat);
       setCoverVersion(settings.coverVersion ?? null);
       setSavedSnapshot(settings);
-      applySiteTheme(settings.theme);
       void notifyGalleryUpdated();
       toast.success("تنظیمات ذخیره شد");
+      await router.replace("/admin");
     } catch (error: any) {
       toast.error(error?.message || "ذخیره ناموفق بود");
     } finally {
@@ -169,11 +155,9 @@ const AdminSettings: NextPage = () => {
     if (!savedSnapshot) return;
     setTitle(savedSnapshot.title);
     setSubtitle(savedSnapshot.subtitle);
-    setTheme(savedSnapshot.theme);
     setCoverPublicId(savedSnapshot.coverPublicId);
     setCoverFormat(savedSnapshot.coverFormat);
     setCoverVersion(savedSnapshot.coverVersion ?? null);
-    applySiteTheme(savedSnapshot.theme);
     toast.push("تغییرات لغو شد");
   }
 
@@ -190,7 +174,7 @@ const AdminSettings: NextPage = () => {
       <main className="af-admin mx-auto min-h-screen max-w-3xl px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 text-[var(--af-text)] sm:px-4 sm:py-8">
         <PageHeader
           title="تنظیمات"
-          subtitle="عنوان، توضیح، تم و عکس کاور صفحه اول را از اینجا عوض کنید."
+          subtitle="عنوان، توضیح و عکس کاور صفحه اول را از اینجا عوض کنید."
           backHref="/admin"
           backLabel="مدیریت"
           trailing={
@@ -236,22 +220,6 @@ const AdminSettings: NextPage = () => {
                   placeholder={DEFAULT_SITE_SETTINGS.subtitle}
                 />
               </label>
-              <div>
-                <span className="mb-1.5 block text-sm text-[var(--af-muted)]">
-                  تم سایت
-                </span>
-                <SegmentedControl
-                  items={THEME_OPTIONS}
-                  value={theme}
-                  onChange={(id) => {
-                    setTheme(id);
-                    applySiteTheme(id);
-                  }}
-                />
-                <p className="mt-2 text-xs text-[var(--af-muted)]">
-                  پیش‌نمایش فوری است؛ برای اعمال دائمی ذخیره کنید.
-                </p>
-              </div>
             </section>
 
             <section>
@@ -383,13 +351,10 @@ const AdminSettings: NextPage = () => {
   );
 };
 
-export default AdminSettings;
-
-export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  if (!isAuthenticated(req)) {
-    return {
-      redirect: { destination: "/admin/login", permanent: false },
-    };
-  }
-  return { props: {} };
-};
+export default function AdminSettingsPage() {
+  return (
+    <AdminGate>
+      <AdminSettings />
+    </AdminGate>
+  );
+}

@@ -149,21 +149,8 @@ export default function UploadWorkspace({
         <Dropzone
           disabled={uploading}
           onFiles={onPick}
-          hint={`JPEG، PNG، WebP، GIF · هر فایل حداکثر ۱۰ مگابایت · تا ۳۰ فایل · Paste هم می‌شود`}
+          hint="JPG · PNG · WebP · GIF · تا ۱۰ مگ · ۳۰ فایل"
         />
-
-        <div className="flex flex-wrap gap-2">
-          {["JPEG / PNG / WebP / GIF", "حداکثر ۱۰ مگابایت", "تا ۳۰ فایل"].map(
-            (chip) => (
-              <span
-                key={chip}
-                className="rounded-full border border-[var(--af-border)] bg-[var(--af-surface)] px-2.5 py-1 text-[11px] text-[var(--af-muted)]"
-              >
-                {chip}
-              </span>
-            ),
-          )}
-        </div>
 
         <AnimatePresence mode="popLayout">
           {items.length > 0 && (
@@ -279,9 +266,9 @@ export default function UploadWorkspace({
           )}
         </AnimatePresence>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--af-border)] bg-[var(--af-surface)]/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-          <div className="mx-auto flex max-w-2xl gap-2">
-            {items.length > 0 && (
+        {(items.length > 0 || uploading) && (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--af-border)] bg-[var(--af-surface)]/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            <div className="mx-auto flex max-w-2xl gap-2">
               <Button
                 type="button"
                 variant="danger"
@@ -291,21 +278,21 @@ export default function UploadWorkspace({
               >
                 <XMarkIcon className="h-5 w-5" />
               </Button>
-            )}
-            <Button
-              type="submit"
-              disabled={uploading || items.length === 0}
-              loading={uploading}
-              className="w-full"
-            >
-              {uploading
-                ? `در حال ارسال… ${toFaDigits(overallProgress)}٪`
-                : items.length > 1
-                  ? `ارسال ${toFaDigits(items.length)} عکس`
-                  : "ارسال عکس"}
-            </Button>
+              <Button
+                type="submit"
+                disabled={uploading}
+                loading={uploading}
+                className="w-full"
+              >
+                {uploading
+                  ? `در حال ارسال… ${toFaDigits(overallProgress)}٪`
+                  : items.length > 1
+                    ? `ارسال ${toFaDigits(items.length)} عکس`
+                    : "ارسال عکس"}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </form>
 
       <AnimatePresence>

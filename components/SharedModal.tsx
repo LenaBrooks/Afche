@@ -7,7 +7,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSwipeable } from "react-swipeable";
 import { variants } from "../utils/animationVariants";
 import downloadPhoto from "../utils/downloadPhoto";
@@ -30,13 +30,18 @@ export default function SharedModal({
   currentPhoto,
   direction,
 }: SharedModalProps) {
+  const mainImgRef = useRef<HTMLImageElement>(null);
   const [imageReady, setImageReady] = useState(false);
 
   const currentImage = images ? images[index] : currentPhoto;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setImageReady(false);
-  }, [index, currentImage?.public_id]);
+    const img = mainImgRef.current;
+    if (img?.complete && img.naturalWidth > 0) {
+      setImageReady(true);
+    }
+  }, [index, currentImage?.public_id, currentImage?.version]);
 
   useEffect(() => {
     if (!images || !currentImage) return;
@@ -110,6 +115,7 @@ export default function SharedModal({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
+                ref={mainImgRef}
                 src={mainSrc}
                 alt="تصویر گالری"
                 className={`max-h-[min(85vh,900px)] max-w-full object-contain transition-opacity duration-150 ${

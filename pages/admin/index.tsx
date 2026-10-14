@@ -1,8 +1,7 @@
-import type { GetServerSideProps, NextPage } from "next";
+import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import {
-  ArrowPathIcon,
   ArrowRightOnRectangleIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -10,11 +9,17 @@ import {
   ChevronRightIcon,
   Cog6ToothIcon,
   MagnifyingGlassIcon,
+  MoonIcon,
   PhotoIcon,
   PlusIcon,
   Squares2X2Icon,
+  SunIcon,
 } from "@heroicons/react/24/solid";
-import { ListBulletIcon } from "@heroicons/react/24/outline";
+import {
+  CheckCircleIcon,
+  ListBulletIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useCallback,
@@ -23,6 +28,8 @@ import {
   useRef,
   useState,
 } from "react";
+import AdminGate from "../../components/AdminGate";
+import AdminNavLink from "../../components/AdminNavLink";
 import ActionSheet, {
   type ActionSheetItem,
 } from "../../components/ui/ActionSheet";
@@ -40,7 +47,7 @@ import {
   setAdminCache,
   type AdminPhoto,
 } from "../../utils/adminCache";
-import { isAuthenticated } from "../../utils/auth";
+import { clearAdminAuthed } from "../../utils/adminSession";
 import { lightboxUrl } from "../../utils/cloudinaryUrl";
 import {
   formatFileSize,
@@ -48,6 +55,11 @@ import {
   toFaDigits,
 } from "../../utils/fa";
 import { notifyGalleryUpdated } from "../../utils/gallerySync";
+import {
+  applyAdminTheme,
+  readAdminTheme,
+  type SiteTheme,
+} from "../../utils/siteSettingsShared";
 
 type Tab = "pending" | "approved" | "hidden";
 type ViewMode = "grid" | "list";
@@ -153,6 +165,7 @@ const AdminPanel: NextPage = () => {
   }));
   const [loading, setLoading] = useState(() => !getAdminCache("pending"));
   const [refreshing, setRefreshing] = useState(false);
+  const [adminTheme, setAdminTheme] = useState<SiteTheme>("dark");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -163,15 +176,31 @@ const AdminPanel: NextPage = () => {
   const [sortKey, setSortKey] = useState<SortKey>("date-desc");
   const [randomSeed, setRandomSeed] = useState(() => Date.now());
   const [sortOpen, setSortOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const listTopRef = useRef<HTMLDivElement>(null);
 
   const syncCount = useCallback((status: Tab, list: AdminPhoto[]) => {
     setCounts((prev) => ({ ...prev, [status]: list.length }));
   }, []);
+
+  useEffect(() => {
+    setAdminTheme(readAdminTheme());
+  }, []);
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  function toggleAdminTheme() {
+    const next: SiteTheme = adminTheme === "dark" ? "light" : "dark";
+    setAdminTheme(next);
+    applyAdminTheme(next);
+  }
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -207,6 +236,11 @@ const AdminPanel: NextPage = () => {
       setError("");
       try {
         const res = await fetch(`/api/admin/photos?status=${status}`);
+        if (res.status === 401) {
+          clearAdminAuthed();
+          window.location.href = "/admin/login";
+          return;
+        }
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "بارگذاری ناموفق بود");
@@ -533,7 +567,8 @@ const AdminPanel: NextPage = () => {
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    clearAdminAuthed();
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     window.location.href = "/admin/login";
   }
 
@@ -690,43 +725,38 @@ const AdminPanel: NextPage = () => {
               <span className="text-[var(--af-text)]/80">
                 {formatFileSize(storageStats.bytes)}
               </span>
-              <span className="mx-1.5 hidden opacity-40 sm:inline">·</span>
-              <span className="hidden sm:inline">
-                تپ روی کارت = منوی عمل · چک‌باکس = انتخاب گروهی
-              </span>
             </p>
           </div>
           <div className="flex shrink-0 gap-1.5">
-            <Link
+            <AdminNavLink
               href="/admin/upload"
-              prefetch
               title="آپلود عکس"
               aria-label="آپلود عکس"
-              className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-accent)]/40 bg-[var(--af-accent-soft)] text-[var(--af-accent)] hover:brightness-110"
+              className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)]"
             >
-              <PlusIcon className="h-5 w-5" />
-            </Link>
+              <PlusIcon className="h-4 w-4" />
+            </AdminNavLink>
             <button
               type="button"
-              title="تازه‌سازی"
-              aria-label="تازه‌سازی"
-              disabled={loading || refreshing}
-              onClick={() => load(tab)}
-              className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)] disabled:opacity-40"
+              title={adminTheme === "dark" ? "تم روشن" : "تم تیره"}
+              aria-label={adminTheme === "dark" ? "تم روشن" : "تم تیره"}
+              onClick={toggleAdminTheme}
+              className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)]"
             >
-              <ArrowPathIcon
-                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-              />
+              {adminTheme === "dark" ? (
+                <SunIcon className="h-4 w-4" />
+              ) : (
+                <MoonIcon className="h-4 w-4" />
+              )}
             </button>
-            <Link
+            <AdminNavLink
               href="/admin/settings"
-              prefetch
               title="تنظیمات"
               aria-label="تنظیمات"
               className="af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)]"
             >
               <Cog6ToothIcon className="h-4 w-4" />
-            </Link>
+            </AdminNavLink>
             <Link
               href="/"
               prefetch
@@ -760,6 +790,7 @@ const AdminPanel: NextPage = () => {
               setPreviewIndex(null);
               setSheetIndex(null);
               setQuery("");
+              setSearchOpen(false);
               setTab(id);
             }}
           />
@@ -767,21 +798,6 @@ const AdminPanel: NextPage = () => {
 
         {!loading && photos.length > 0 && (
           <div className="mb-3 space-y-2.5 rounded-[var(--af-radius-lg)] border border-[var(--af-border)] bg-[var(--af-surface)] p-2.5 shadow-[var(--af-shadow-sm)] sm:mb-4 sm:space-y-3 sm:p-3">
-            <div className="relative w-full">
-              <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-[var(--af-muted)]" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPreviewIndex(null);
-                  setSheetIndex(null);
-                }}
-                placeholder="جستجو نام فایل…"
-                className="af-focusable h-10 w-full rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-input-bg)] pr-9 pl-3 text-sm text-[var(--af-text)] outline-none placeholder:text-[var(--af-muted)] focus:border-[var(--af-accent)]/40"
-              />
-            </div>
-
             <div className="flex items-center gap-2">
               <div className="relative min-w-0 flex-1" ref={sortRef}>
                 <button
@@ -820,13 +836,13 @@ const AdminPanel: NextPage = () => {
                             }}
                             className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right text-sm ${
                               active
-                                ? "bg-[var(--af-accent-soft)] text-[var(--af-text)]"
+                                ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
                                 : "text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
                             }`}
                           >
                             {opt.label}
                             {active && (
-                              <CheckIcon className="h-4 w-4 text-emerald-400" />
+                              <CheckIcon className="h-4 w-4 text-[var(--af-accent)]" />
                             )}
                           </button>
                         </li>
@@ -836,6 +852,21 @@ const AdminPanel: NextPage = () => {
                 )}
               </div>
 
+              <button
+                type="button"
+                title="جستجو"
+                aria-label="جستجو"
+                aria-expanded={searchOpen}
+                onClick={() => setSearchOpen((o) => !o)}
+                className={`af-focusable inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--af-radius-md)] border transition ${
+                  searchOpen || query
+                    ? "border-[var(--af-ctl-active-ring)] bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
+                    : "border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+                }`}
+              >
+                <MagnifyingGlassIcon className="h-4 w-4" />
+              </button>
+
               <div className="flex h-10 shrink-0 overflow-hidden rounded-[var(--af-radius-md)] border border-[var(--af-border)] bg-[var(--af-ctl-bg)]">
                 <button
                   type="button"
@@ -844,7 +875,7 @@ const AdminPanel: NextPage = () => {
                   onClick={() => setViewMode("grid")}
                   className={`inline-flex h-full w-10 items-center justify-center transition ${
                     viewMode === "grid"
-                      ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)]"
+                      ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
                       : "text-[var(--af-ctl-fg)] hover:bg-[var(--af-hover)]"
                   }`}
                 >
@@ -857,7 +888,7 @@ const AdminPanel: NextPage = () => {
                   onClick={() => setViewMode("list")}
                   className={`inline-flex h-full w-10 items-center justify-center transition ${
                     viewMode === "list"
-                      ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)]"
+                      ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
                       : "text-[var(--af-ctl-fg)] hover:bg-[var(--af-hover)]"
                   }`}
                 >
@@ -866,26 +897,65 @@ const AdminPanel: NextPage = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <label className="flex cursor-pointer items-center gap-2 rounded-[var(--af-radius-sm)] border border-[var(--af-border)] bg-[var(--af-input-bg)] px-2.5 py-1.5">
+            {searchOpen && (
+              <div className="relative w-full">
+                <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-[var(--af-accent)]" />
                 <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleAll}
-                  disabled={busy}
-                  className="h-4 w-4 accent-[var(--af-accent)]"
+                  ref={searchInputRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setPreviewIndex(null);
+                    setSheetIndex(null);
+                  }}
+                  placeholder="جستجو نام فایل…"
+                  className="af-focusable h-10 w-full rounded-[var(--af-radius-md)] border border-[var(--af-ctl-active-ring)] bg-[var(--af-input-bg)] pr-9 pl-10 text-sm text-[var(--af-text)] outline-none placeholder:text-[var(--af-muted)] shadow-[var(--af-ctl-active-glow)]"
                 />
-                انتخاب صفحه (
-                <span className="fa-num">{toFaDigits(pagePhotos.length)}</span>)
-              </label>
+                <button
+                  type="button"
+                  title="بستن"
+                  aria-label="بستن جستجو"
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setQuery("");
+                  }}
+                  className="absolute top-1/2 left-2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <button
+                type="button"
+                title={
+                  allSelected
+                    ? "لغو انتخاب صفحه"
+                    : `انتخاب صفحه (${toFaDigits(pagePhotos.length)})`
+                }
+                aria-label={
+                  allSelected ? "لغو انتخاب صفحه" : "انتخاب صفحه"
+                }
+                aria-pressed={allSelected}
+                disabled={busy}
+                onClick={toggleAll}
+                className={`af-focusable inline-flex h-10 w-10 items-center justify-center rounded-[var(--af-radius-md)] border transition disabled:opacity-40 ${
+                  allSelected
+                    ? "border-[var(--af-ctl-active-ring)] bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)]"
+                    : "border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
+                }`}
+              >
+                <CheckCircleIcon className="h-5 w-5" />
+              </button>
               {selected.size > 0 && (
                 <button
                   type="button"
                   onClick={() => setSelected(new Set())}
-                  className="af-focusable text-xs text-[var(--af-muted)] hover:text-[var(--af-text)]"
+                  className="af-focusable fa-num text-xs text-[var(--af-accent)] hover:brightness-110"
                 >
-                  پاک کردن انتخاب (
-                  <span className="fa-num">{toFaDigits(selected.size)}</span>)
+                  پاک کردن ({toFaDigits(selected.size)})
                 </button>
               )}
               {visiblePhotos.length > PAGE_SIZE && (
@@ -940,14 +1010,13 @@ const AdminPanel: NextPage = () => {
             title={EMPTY_COPY[tab].title}
             description={EMPTY_COPY[tab].description}
             action={
-              <Link
+              <AdminNavLink
                 href="/admin/upload"
-                prefetch
                 className="af-focusable inline-flex items-center gap-2 rounded-[var(--af-radius-md)] border border-[var(--af-inverse)] bg-[var(--af-inverse)] px-4 py-2.5 text-sm font-semibold text-[var(--af-inverse-text)]"
               >
                 <PlusIcon className="h-4 w-4" />
                 آپلود عکس
-              </Link>
+              </AdminNavLink>
             }
           />
         ) : visiblePhotos.length === 0 ? (
@@ -967,12 +1036,16 @@ const AdminPanel: NextPage = () => {
               return (
                 <div
                   key={photo.public_id}
-                  className={`flex h-14 items-center gap-2 border-b border-[var(--af-hairline)] px-2 sm:h-16 sm:gap-3 sm:px-3 ${
-                    isSelected ? "bg-[var(--af-accent-soft)]" : ""
+                  className={`flex h-14 items-center gap-2 border-b border-[var(--af-hairline)] px-2 transition sm:h-16 sm:gap-3 sm:px-3 ${
+                    isSelected
+                      ? "bg-[var(--af-ctl-active-bg)] shadow-[inset_3px_0_0_var(--af-accent),var(--af-ctl-active-glow)]"
+                      : ""
                   }`}
                 >
                   <label
-                    className="flex h-10 w-8 shrink-0 cursor-pointer items-center justify-center"
+                    className={`flex h-10 w-8 shrink-0 cursor-pointer items-center justify-center ${
+                      isSelected ? "text-[var(--af-accent)]" : "text-[var(--af-muted)]"
+                    }`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <input
@@ -1031,15 +1104,19 @@ const AdminPanel: NextPage = () => {
               return (
                 <div
                   key={photo.public_id}
-                  className={`overflow-hidden rounded-[var(--af-radius-md)] border bg-[var(--af-surface)] ${
+                  className={`overflow-hidden rounded-[var(--af-radius-md)] border bg-[var(--af-surface)] transition ${
                     isSelected
-                      ? "border-[var(--af-accent)] ring-1 ring-[var(--af-accent)]/40"
+                      ? "border-[var(--af-accent)] shadow-[var(--af-select-glow)] ring-1 ring-[var(--af-ctl-active-ring)]"
                       : "border-[var(--af-border)]"
                   }`}
                 >
                   <div className="relative">
                     <label
-                      className="absolute top-1.5 right-1.5 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-black/55"
+                      className={`absolute top-1.5 right-1.5 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition ${
+                        isSelected
+                          ? "bg-[var(--af-accent)] text-[var(--af-inverse)] shadow-[0_0_14px_rgba(232,197,140,0.75)]"
+                          : "bg-black/55 text-white/80"
+                      }`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <input
@@ -1094,15 +1171,16 @@ const AdminPanel: NextPage = () => {
         {!loading && visiblePhotos.length > PAGE_SIZE && (
           <nav
             aria-label="صفحه‌بندی"
-            className="mt-4 flex flex-wrap items-center justify-center gap-2 pb-2"
+            className="mt-4 flex flex-wrap items-center justify-center gap-1.5 pb-2"
           >
             <button
               type="button"
+              title="صفحه بعد"
+              aria-label="صفحه بعد"
               disabled={safePage >= pageCount}
               onClick={() => goToPage(safePage + 1)}
-              className="af-focusable inline-flex h-9 items-center gap-1 rounded-[var(--af-radius-md)] border border-[var(--af-border)] px-3 text-sm text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)] disabled:opacity-35"
+              className="af-focusable inline-flex h-9 w-9 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)] disabled:opacity-35"
             >
-              بعدی
               <ChevronLeftIcon className="h-4 w-4" />
             </button>
             <div className="flex items-center gap-1">
@@ -1131,11 +1209,13 @@ const AdminPanel: NextPage = () => {
                     <button
                       key={item}
                       type="button"
+                      title={`صفحه ${toFaDigits(item)}`}
+                      aria-label={`صفحه ${toFaDigits(item)}`}
                       aria-current={item === safePage ? "page" : undefined}
                       onClick={() => goToPage(item)}
-                      className={`af-focusable fa-num inline-flex h-9 min-w-9 items-center justify-center rounded-[var(--af-radius-md)] px-2 text-sm ${
+                      className={`af-focusable fa-num inline-flex h-9 min-w-9 items-center justify-center rounded-[var(--af-radius-md)] px-2 text-sm transition ${
                         item === safePage
-                          ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)]"
+                          ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)] ring-1 ring-[var(--af-ctl-active-ring)]"
                           : "border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
                       }`}
                     >
@@ -1146,12 +1226,13 @@ const AdminPanel: NextPage = () => {
             </div>
             <button
               type="button"
+              title="صفحه قبل"
+              aria-label="صفحه قبل"
               disabled={safePage <= 1}
               onClick={() => goToPage(safePage - 1)}
-              className="af-focusable inline-flex h-9 items-center gap-1 rounded-[var(--af-radius-md)] border border-[var(--af-border)] px-3 text-sm text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)] disabled:opacity-35"
+              className="af-focusable inline-flex h-9 w-9 items-center justify-center rounded-[var(--af-radius-md)] border border-[var(--af-border)] text-[var(--af-muted)] hover:bg-[var(--af-chip)] hover:text-[var(--af-text)] disabled:opacity-35"
             >
               <ChevronRightIcon className="h-4 w-4" />
-              قبلی
             </button>
           </nav>
         )}
@@ -1163,10 +1244,10 @@ const AdminPanel: NextPage = () => {
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
-            className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--af-border)] bg-[var(--af-surface)]/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[var(--af-shadow)] backdrop-blur-sm"
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--af-ctl-active-ring)] bg-[var(--af-surface)]/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[var(--af-ctl-active-glow)] backdrop-blur-sm"
           >
             <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto scrollbar-none">
-              <span className="fa-num shrink-0 text-xs text-[var(--af-muted)] sm:text-sm">
+              <span className="fa-num shrink-0 text-xs font-medium text-[var(--af-ctl-active-fg)] sm:text-sm">
                 {toFaDigits(selected.size)} انتخاب
               </span>
               <div className="mr-auto flex shrink-0 gap-1.5">
@@ -1348,13 +1429,10 @@ const AdminPanel: NextPage = () => {
   );
 };
 
-export default AdminPanel;
-
-export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  if (!isAuthenticated(req)) {
-    return {
-      redirect: { destination: "/admin/login", permanent: false },
-    };
-  }
-  return { props: {} };
-};
+export default function AdminPanelPage() {
+  return (
+    <AdminGate>
+      <AdminPanel />
+    </AdminGate>
+  );
+}

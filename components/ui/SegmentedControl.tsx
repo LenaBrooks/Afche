@@ -28,7 +28,7 @@ export default function SegmentedControl<T extends string>({
             onClick={() => onChange(item.id)}
             className={`af-focusable inline-flex shrink-0 items-center gap-1.5 rounded-[var(--af-radius-sm)] px-2.5 py-2 text-sm transition sm:gap-2 sm:px-3 ${
               active
-                ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-shadow-sm)]"
+                ? "bg-[var(--af-ctl-active-bg)] text-[var(--af-ctl-active-fg)] shadow-[var(--af-ctl-active-glow)] ring-1 ring-[var(--af-ctl-active-ring)]"
                 : "text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
             }`}
           >
@@ -37,7 +37,7 @@ export default function SegmentedControl<T extends string>({
               <span
                 className={`fa-num rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                   active
-                    ? "bg-[var(--af-ctl-active-fg)]/15 text-[var(--af-ctl-active-fg)]"
+                    ? "bg-[var(--af-accent)]/25 text-[var(--af-ctl-active-fg)]"
                     : "bg-[var(--af-chip)] text-[var(--af-muted)]"
                 }`}
               >

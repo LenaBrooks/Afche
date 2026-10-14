@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSiteSettings } from "../../utils/siteSettings";
 
-/** Public read-only site settings (theme, title, cover). */
+/** Public read-only site settings (title, cover). Theme is admin-only. */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -21,7 +21,6 @@ export default async function handler(
       settings: {
         title: settings.title,
         subtitle: settings.subtitle,
-        theme: settings.theme,
         coverPublicId: settings.coverPublicId,
         coverFormat: settings.coverFormat,
         coverVersion: settings.coverVersion,
