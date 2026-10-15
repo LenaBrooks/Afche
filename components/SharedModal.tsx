@@ -8,7 +8,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useSwipeable } from "react-swipeable";
 import { variants } from "../utils/animationVariants";
 import downloadPhoto from "../utils/downloadPhoto";
 import { formatJalaliDate, toFaDigits } from "../utils/fa";
@@ -20,6 +19,14 @@ import {
 import { range } from "../utils/range";
 import type { ImageProps, SharedModalProps } from "../utils/types";
 import Twitter from "./Icons/Twitter";
+
+const SWIPE_DISTANCE = 64;
+const SWIPE_VELOCITY = 450;
+
+const slideTransition = {
+  x: { type: "spring" as const, stiffness: 320, damping: 34, mass: 0.8 },
+  opacity: { duration: 0.22, ease: "easeOut" as const },
+};
 
 export default function SharedModal({
   index,
@@ -61,19 +68,25 @@ export default function SharedModal({
     range(index - 15, index + 15).includes(img.id),
   );
 
-  const handlers = useSwipeable({
-    onSwipedLeft: () => {
-      if (images && index < images.length - 1) {
-        changePhotoId(index + 1);
-      }
-    },
-    onSwipedRight: () => {
-      if (index > 0) {
-        changePhotoId(index - 1);
-      }
-    },
-    trackMouse: true,
-  });
+  function onDragEnd(
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: { offset: { x: number }; velocity: { x: number } },
+  ) {
+    if (!navigation || !images) return;
+    const { offset, velocity } = info;
+    // RTL مثل موبایل: کشیدن به راست → عکس بعدی، به چپ → قبلی
+    const toNext =
+      offset.x > SWIPE_DISTANCE || velocity.x > SWIPE_VELOCITY;
+    const toPrev =
+      offset.x < -SWIPE_DISTANCE || velocity.x < -SWIPE_VELOCITY;
+    if (toNext && index < images.length - 1) {
+      changePhotoId(index + 1);
+      return;
+    }
+    if (toPrev && index > 0) {
+      changePhotoId(index - 1);
+    }
+  }
 
   if (!currentImage) return null;
 
@@ -95,20 +108,14 @@ export default function SharedModal({
       : 3 / 2;
 
   return (
-    <MotionConfig
-      transition={{
-        x: { type: "tween", duration: 0.22, ease: [0.22, 1, 0.36, 1] },
-        opacity: { duration: 0.18, ease: "easeOut" },
-      }}
-    >
+    <MotionConfig transition={slideTransition}>
       <div
         className={`relative z-50 flex w-full max-w-5xl items-center justify-center px-2 ${
           navigation ? "max-h-[min(85vh,900px)] pb-16" : "max-h-[90vh]"
         }`}
-        {...handlers}
       >
         <div className="relative flex max-h-[inherit] w-full items-center justify-center overflow-hidden">
-          <AnimatePresence initial={false} custom={direction} mode="sync">
+          <AnimatePresence initial={false} custom={direction} mode="popLayout">
             <motion.div
               key={currentImage.public_id}
               custom={direction ?? 0}
@@ -116,7 +123,13 @@ export default function SharedModal({
               initial="enter"
               animate="center"
               exit="exit"
-              className="flex max-h-[inherit] w-full items-center justify-center"
+              drag={navigation ? "x" : false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.92}
+              dragDirectionLock
+              onDragEnd={onDragEnd}
+              transition={slideTransition}
+              className="flex max-h-[inherit] w-full cursor-grab items-center justify-center active:cursor-grabbing touch-pan-y"
             >
               <div
                 className="relative w-full max-w-full"
@@ -132,11 +145,12 @@ export default function SharedModal({
                   alt="تصویر گالری"
                   width={currentImage.width}
                   height={currentImage.height}
-                  className={`absolute inset-0 mx-auto h-full w-full object-contain transition-opacity duration-200 ease-out ${
+                  className={`pointer-events-none absolute inset-0 mx-auto h-full w-full object-contain transition-opacity duration-200 ease-out ${
                     imageReady ? "opacity-100" : "opacity-0"
                   }`}
                   decoding="async"
                   fetchPriority="high"
+                  draggable={false}
                   onLoad={() => setImageReady(true)}
                 />
               </div>
