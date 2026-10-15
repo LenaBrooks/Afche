@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { FormEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -11,6 +12,7 @@ import {
   useUploadQueue,
   type UploadMode,
 } from "./UploadQueueProvider";
+import { invalidateAdminCache } from "../utils/adminCache";
 import { formatFileSize, toFaDigits } from "../utils/fa";
 
 const STATUS_LABEL = {
@@ -37,6 +39,7 @@ export default function UploadWorkspace({
   backLabel,
   successHint,
 }: Props) {
+  const router = useRouter();
   const toast = useToast();
   const reduceMotion = useReducedMotion();
   const {
@@ -54,6 +57,14 @@ export default function UploadWorkspace({
   const [showSuccess, setShowSuccess] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
+
+  function afterSuccessPrimary() {
+    setShowSuccess(false);
+    if (mode === "admin") {
+      invalidateAdminCache("approved");
+      void router.push("/admin?tab=approved");
+    }
+  }
 
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
@@ -317,12 +328,15 @@ export default function UploadWorkspace({
                 {toFaDigits(successCount)} عکس ارسال شد. {successHint}
               </p>
               <div className="flex flex-col gap-2">
-                <Button type="button" onClick={() => setShowSuccess(false)}>
+                <Button type="button" onClick={afterSuccessPrimary}>
                   آپلود بیشتر
                 </Button>
                 <Link
                   href={backHref}
                   prefetch
+                  onClick={() => {
+                    if (mode === "admin") invalidateAdminCache("approved");
+                  }}
                   className="af-focusable rounded-[var(--af-radius-md)] border border-[var(--af-border)] px-4 py-2.5 text-sm text-[var(--af-muted)] hover:bg-[var(--af-hover)] hover:text-[var(--af-text)]"
                 >
                   {backLabel}

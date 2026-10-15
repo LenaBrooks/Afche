@@ -13,7 +13,7 @@ const AdminUploadPage: NextPage = () => {
         mode="admin"
         title="آپلود عکس"
         subtitle="عکس‌ها مستقیم منتشر می‌شوند. می‌توانید بین صفحات جابه‌جا شوید؛ ارسال ادامه دارد."
-        backHref="/admin"
+        backHref="/admin?tab=approved"
         backLabel="بازگشت"
         successHint="در گالری منتشر شد."
       />

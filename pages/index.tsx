@@ -72,6 +72,7 @@ const VIEW_MODES: {
 
 const STORAGE_KEY = "gallery-view-density";
 const SORT_STORAGE_KEY = "gallery-sort";
+const PAGE_SIZE = 24;
 const MotionLink = motion(Link);
 
 function shuffleSeeded<T>(items: T[], seed: number): T[] {
@@ -114,6 +115,8 @@ const Home: NextPage = ({
   const lastViewedPhotoRef = useRef<HTMLAnchorElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
   const densityRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     try {
@@ -180,13 +183,6 @@ const Home: NextPage = ({
   }, []);
 
   useEffect(() => {
-    if (lastViewedPhoto && !photoId) {
-      lastViewedPhotoRef.current?.scrollIntoView({ block: "center" });
-      setLastViewedPhoto(null);
-    }
-  }, [photoId, lastViewedPhoto, setLastViewedPhoto]);
-
-  useEffect(() => {
     if (!sortOpen && !densityOpen) return;
     function onDoc(e: MouseEvent) {
       const t = e.target as Node;
@@ -240,6 +236,53 @@ const Home: NextPage = ({
     });
     return next;
   }, [images, sort, randomSeed]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [sort, randomSeed, density, images.length]);
+
+  const visibleImages = useMemo(
+    () => sortedImages.slice(0, visibleCount),
+    [sortedImages, visibleCount],
+  );
+  const hasMore = visibleCount < sortedImages.length;
+
+  useEffect(() => {
+    if (lastViewedPhoto == null || photoId) return;
+    const targetId = Number(lastViewedPhoto);
+    if (!Number.isFinite(targetId)) return;
+    const idx = sortedImages.findIndex((p) => p.id === targetId);
+    if (idx >= 0 && visibleCount < idx + 1) {
+      setVisibleCount(idx + 1);
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      lastViewedPhotoRef.current?.scrollIntoView({ block: "center" });
+      setLastViewedPhoto(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    lastViewedPhoto,
+    photoId,
+    sortedImages,
+    visibleCount,
+    setLastViewedPhoto,
+  ]);
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        setVisibleCount((c) => Math.min(c + PAGE_SIZE, sortedImages.length));
+      },
+      { root: null, rootMargin: "600px 0px", threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, sortedImages.length, visibleCount]);
 
   const mode = VIEW_MODES.find((m) => m.id === density) || VIEW_MODES[1];
 
@@ -515,7 +558,7 @@ const Home: NextPage = ({
                 initial={reduceMotion ? false : "hidden"}
                 animate="show"
               >
-                {sortedImages.map(
+                {visibleImages.map(
                   ({ id, public_id, format, version }, index) => (
                     <motion.div
                       key={`${public_id}-${id}`}
@@ -546,6 +589,16 @@ const Home: NextPage = ({
                 )}
               </motion.div>
             </LayoutGroup>
+
+            {hasMore && (
+              <div
+                ref={sentinelRef}
+                className="flex items-center justify-center py-8"
+                aria-hidden
+              >
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--af-accent)]/30 border-t-[var(--af-accent)]" />
+              </div>
+            )}
           </>
         )}
       </main>

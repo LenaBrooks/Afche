@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { invalidateAdminCache } from "../utils/adminCache";
 import { notifyGalleryUpdated } from "../utils/gallerySync";
 import { toFaDigits } from "../utils/fa";
 
@@ -318,6 +319,7 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
       }
 
       if (mode === "admin" && ok > 0) {
+        invalidateAdminCache("approved");
         void notifyGalleryUpdated();
       }
 

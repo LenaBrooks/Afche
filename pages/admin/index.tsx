@@ -1,6 +1,7 @@
 import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import {
   ArrowRightOnRectangleIcon,
   CheckIcon,
@@ -153,18 +154,42 @@ function sortPhotos(list: AdminPhoto[], sort: SortKey, randomSeed = 1) {
   return next;
 }
 
+function tabFromQuery(value: string | string[] | undefined): Tab | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "pending" || raw === "approved" || raw === "hidden") return raw;
+  return null;
+}
+
+function samePhotoIds(a: AdminPhoto[], b: AdminPhoto[]) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i].public_id !== b[i].public_id) return false;
+  }
+  return true;
+}
+
+function initialTab(): Tab {
+  if (typeof window === "undefined") return "pending";
+  return (
+    tabFromQuery(
+      new URLSearchParams(window.location.search).get("tab") || undefined,
+    ) || "pending"
+  );
+}
+
 const AdminPanel: NextPage = () => {
+  const router = useRouter();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>("pending");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [photos, setPhotos] = useState<AdminPhoto[]>(
-    () => getAdminCache("pending") || [],
+    () => getAdminCache(initialTab()) || [],
   );
   const [counts, setCounts] = useState<Record<Tab, number>>(() => ({
     pending: getAdminCache("pending")?.length ?? 0,
     approved: getAdminCache("approved")?.length ?? 0,
     hidden: getAdminCache("hidden")?.length ?? 0,
   }));
-  const [loading, setLoading] = useState(() => !getAdminCache("pending"));
+  const [loading, setLoading] = useState(() => !getAdminCache(initialTab()));
   const [refreshing, setRefreshing] = useState(false);
   const [adminTheme, setAdminTheme] = useState<SiteTheme>("dark");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -184,9 +209,15 @@ const AdminPanel: NextPage = () => {
   const sortRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listTopRef = useRef<HTMLDivElement>(null);
+  const tabRef = useRef<Tab>(tab);
+  const loadSeq = useRef(0);
+
+  tabRef.current = tab;
 
   const syncCount = useCallback((status: Tab, list: AdminPhoto[]) => {
-    setCounts((prev) => ({ ...prev, [status]: list.length }));
+    setCounts((prev) =>
+      prev[status] === list.length ? prev : { ...prev, [status]: list.length },
+    );
   }, []);
 
   useEffect(() => {
@@ -219,18 +250,48 @@ const AdminPanel: NextPage = () => {
     };
   }, [sortOpen]);
 
+  const showTab = useCallback(
+    (next: Tab) => {
+      if (next === tabRef.current) return;
+      tabRef.current = next;
+      const cached = getAdminCache(next);
+      setTab(next);
+      setPhotos(cached || []);
+      setLoading(!cached);
+      setSelected(new Set());
+      setPreviewIndex(null);
+      setSheetIndex(null);
+      setQuery("");
+      setSearchOpen(false);
+      setError("");
+      if (cached) syncCount(next, cached);
+    },
+    [syncCount],
+  );
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const next = tabFromQuery(router.query.tab);
+    if (next && next !== tabRef.current) showTab(next);
+  }, [router.isReady, router.query.tab, showTab]);
+
   const load = useCallback(
     async (status: Tab, opts?: { silent?: boolean }) => {
+      const seq = ++loadSeq.current;
       const cached = getAdminCache(status);
-      const silent = opts?.silent || Boolean(cached);
+      const silent = opts?.silent ?? Boolean(cached);
+      const isCurrent = () =>
+        status === tabRef.current && seq === loadSeq.current;
 
       if (cached) {
-        setPhotos(cached);
+        if (isCurrent()) {
+          setPhotos((prev) => (samePhotoIds(prev, cached) ? prev : cached));
+          setLoading(false);
+        }
         syncCount(status, cached);
-        setLoading(false);
-      } else if (!silent) {
+      } else if (!silent && isCurrent()) {
         setLoading(true);
-      } else {
+      } else if (silent && isCurrent()) {
         setRefreshing(true);
       }
 
@@ -250,34 +311,35 @@ const AdminPanel: NextPage = () => {
         const list = data.photos || [];
         setAdminCache(status, list);
         syncCount(status, list);
-        if (status === tab) {
-          setPhotos(list);
-          setSelected(new Set());
+        if (isCurrent()) {
+          setPhotos((prev) => (samePhotoIds(prev, list) ? prev : list));
         }
       } catch (e: any) {
-        if (!cached && status === tab) {
+        if (!cached && isCurrent()) {
           setError(e.message || "بارگذاری ناموفق بود");
           setPhotos([]);
         }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (isCurrent()) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
-    [syncCount, tab],
+    [syncCount],
   );
 
   useEffect(() => {
     const cached = getAdminCache(tab);
     if (cached) {
-      setPhotos(cached);
+      setPhotos((prev) => (samePhotoIds(prev, cached) ? prev : cached));
       syncCount(tab, cached);
       setLoading(false);
-      setSelected(new Set());
-      load(tab, { silent: true });
-    } else {
-      load(tab);
+      // Keep cached list as-is when switching tabs — background refetch
+      // was racing and flashing the wrong / previous list.
+      return;
     }
+    void load(tab);
   }, [tab, load, syncCount]);
 
   useEffect(() => {
@@ -440,13 +502,65 @@ const AdminPanel: NextPage = () => {
   }
 
   function applyOptimisticRemoval(ids: string[], action: string) {
+    // Drop in-flight list fetches so a stale response can't restore old photos.
+    loadSeq.current += 1;
+    setRefreshing(false);
+    setLoading(false);
+
     const remove = new Set(ids);
-    setPhotos((prev) => {
-      const next = prev.filter((p) => !remove.has(p.public_id));
-      setAdminCache(tab, next);
-      syncCount(tab, next);
+    const moved = photos.filter((p) => remove.has(p.public_id));
+    const n = moved.length;
+    const nextCurrent = photos.filter((p) => !remove.has(p.public_id));
+
+    setAdminCache(tab, nextCurrent);
+    setPhotos(nextCurrent);
+
+    let destCount: number | null = null;
+    const otherCounts: Partial<Record<Tab, number>> = {};
+
+    const moveTo = (dest: Tab, status: string) => {
+      const cached = getAdminCache(dest);
+      if (cached) {
+        const nextDest = [
+          ...moved.map((p) => ({ ...p, status })),
+          ...cached.filter((p) => !remove.has(p.public_id)),
+        ];
+        setAdminCache(dest, nextDest);
+        destCount = nextDest.length;
+      } else {
+        invalidateAdminCache(dest);
+      }
+    };
+
+    if (action === "hide") moveTo("hidden", "hidden");
+    else if (action === "unhide") moveTo("approved", "approved");
+    else if (action === "approve") moveTo("approved", "approved");
+    else {
+      for (const t of relatedTabs(tab, action)) {
+        if (t === tab) continue;
+        const cached = getAdminCache(t);
+        if (cached) {
+          const filtered = cached.filter((p) => !remove.has(p.public_id));
+          setAdminCache(t, filtered);
+          otherCounts[t] = filtered.length;
+        } else {
+          invalidateAdminCache(t);
+        }
+      }
+    }
+
+    setCounts((prev) => {
+      const next = { ...prev, [tab]: nextCurrent.length };
+      if (action === "hide") {
+        next.hidden = destCount ?? prev.hidden + n;
+      } else if (action === "unhide" || action === "approve") {
+        next.approved = destCount ?? prev.approved + n;
+      } else {
+        Object.assign(next, otherCounts);
+      }
       return next;
     });
+
     setSelected((prev) => {
       const next = new Set(prev);
       ids.forEach((id) => next.delete(id));
@@ -454,9 +568,6 @@ const AdminPanel: NextPage = () => {
     });
     setPreviewIndex(null);
     setSheetIndex(null);
-    for (const t of relatedTabs(tab, action)) {
-      if (t !== tab) invalidateAdminCache(t);
-    }
   }
 
   function askDestructive(action: string, count: number, run: () => void) {
@@ -788,11 +899,12 @@ const AdminPanel: NextPage = () => {
             }))}
             value={tab}
             onChange={(id) => {
-              setPreviewIndex(null);
-              setSheetIndex(null);
-              setQuery("");
-              setSearchOpen(false);
-              setTab(id);
+              showTab(id);
+              void router.replace(
+                id === "pending" ? "/admin" : `/admin?tab=${id}`,
+                undefined,
+                { shallow: true },
+              );
             }}
           />
         </div>
@@ -918,15 +1030,10 @@ const AdminPanel: NextPage = () => {
                 {(tab === "approved" || tab === "hidden") && (
                   <button
                     type="button"
-                    title="حذف همه"
-                    aria-label="حذف همه"
-                    disabled={busy || visiblePhotos.length === 0}
-                    onClick={() =>
-                      runBulk(
-                        "delete",
-                        visiblePhotos.map((p) => p.public_id),
-                      )
-                    }
+                    title="حذف انتخاب‌شده‌ها"
+                    aria-label="حذف انتخاب‌شده‌ها"
+                    disabled={busy || selected.size === 0}
+                    onClick={() => runBulk("delete")}
                     className="af-focusable inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--af-danger)] hover:bg-[var(--af-danger-soft)] disabled:opacity-40"
                   >
                     <TrashIcon className="h-4 w-4" />
@@ -1049,7 +1156,7 @@ const AdminPanel: NextPage = () => {
                         src={photo.url}
                         alt=""
                         className="h-full w-full object-cover"
-                        loading="lazy"
+                        loading="eager"
                         decoding="async"
                       />
                       {busyId === photo.public_id && (
@@ -1118,7 +1225,7 @@ const AdminPanel: NextPage = () => {
                         src={photo.url}
                         alt=""
                         className="absolute inset-0 h-full w-full object-cover"
-                        loading="lazy"
+                        loading="eager"
                         decoding="async"
                       />
                       {(busyId === photo.public_id ||
